@@ -6,7 +6,8 @@
     "easyswoole/easyswoole": "3.x-dev",
     "easyswoole/mysqli": "^1.1.9",
     "easyswoole/mysqli-pool": "dev-master",
-    "nette/php-generator": "^3.2"
+    "nette/php-generator": "^3.2",
+    "phpunit/phpunit": "dev-master"
   },
   "authors": [
     {
@@ -18,6 +19,7 @@
   "autoload": {
     "psr-4": {
       "AutomaticGeneration\\": "src/",
+      "AutomaticGeneration\\Test\\": "Tests/",
       "App\\": "App/"
     }
   }
