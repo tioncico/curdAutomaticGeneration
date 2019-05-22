@@ -1,22 +1,24 @@
 {
-    "name": "tioncico/curd-automatic-generation",
-    "type": "l",
-    "license" : "Apache-2.0",
-    "require": {
-        "easyswoole/easyswoole": "3.x-dev",
-        "easyswoole/mysqli": "dev-master",
-        "nette/php-generator": "^3.2"
-    },
-    "authors": [
-        {
-            "name": "tioncico",
-            "email": "1067197739@qq.com"
-        }
-    ],
-    "minimum-stability": "dev",
-    "autoload": {
-        "psr-4": {
-            "EasySwoole\\EasySwoole\\": "src/"
-        }
+  "name": "tioncico/curd-automatic-generation",
+  "type": "l",
+  "license": "Apache-2.0",
+  "require": {
+    "easyswoole/easyswoole": "3.x-dev",
+    "easyswoole/mysqli": "^1.1.9",
+    "easyswoole/mysqli-pool": "dev-master",
+    "nette/php-generator": "^3.2"
+  },
+  "authors": [
+    {
+      "name": "tioncico",
+      "email": "1067197739@qq.com"
     }
+  ],
+  "minimum-stability": "dev",
+  "autoload": {
+    "psr-4": {
+      "AutomaticGeneration\\": "src/",
+      "App\\": "App/"
+    }
+  }
 }
