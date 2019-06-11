@@ -9,6 +9,7 @@
 namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ModelConfig;
+use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
@@ -24,6 +25,7 @@ class ModelBuilder
      * @var $config ModelConfig
      */
     protected $config;
+    protected $className;
 
     /**
      * BeanBuilder constructor.
@@ -34,6 +36,8 @@ class ModelBuilder
     {
         $this->config = $config;
         $this->createBaseDirectory($config->getBaseDirectory());
+        $realTableName = $this->setRealTableName() . 'Model';
+        $this->className = $this->config->getBaseNamespace().'\\'.$realTableName;
     }
 
     /**
@@ -45,13 +49,7 @@ class ModelBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-        if (!is_dir((string)$baseDirectory)) {
-            if (!@mkdir($baseDirectory, 0755)) throw new \Exception("Failed to create directory {$baseDirectory}");
-            @chmod($baseDirectory, 0755);  // if umask
-            if (!is_writable($baseDirectory)) {
-                throw new \Exception("The directory {$baseDirectory} cannot be written. Please set the permissions manually");
-            }
-        }
+       File::createDirectory($baseDirectory);
     }
 
     /**
@@ -321,4 +319,13 @@ Body;
         $result = file_put_contents($fileName . '.php', $content);
         return $result == false ? $result : $fileName . '.php';
     }
+
+    /**
+     * @return mixed
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
+
 }

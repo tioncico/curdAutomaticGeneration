@@ -71,6 +71,12 @@ class BeanConfig extends SplBean
     public function setBaseNamespace($baseNamespace)
     {
         $this->baseNamespace = $baseNamespace;
+        //设置下基础目录
+        $pathArr = explode('\\',$baseNamespace);
+        $app = array_shift($pathArr);
+        if ($app=='App'){
+            $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . implode('/',$pathArr));
+        }
     }
 
     /**

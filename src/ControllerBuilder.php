@@ -10,6 +10,7 @@ namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ControllerConfig;
 use EasySwoole\Http\Message\Status;
+use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
@@ -46,13 +47,7 @@ class ControllerBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-        if (!is_dir((string)$baseDirectory)) {
-            if (!@mkdir($baseDirectory, 0755)) throw new \Exception("Failed to create directory {$baseDirectory}");
-            @chmod($baseDirectory, 0755);  // if umask
-            if (!is_writable($baseDirectory)) {
-                throw new \Exception("The directory {$baseDirectory} cannot be written. Please set the permissions manually");
-            }
-        }
+        File::createDirectory($baseDirectory);
     }
 
     /**
@@ -104,8 +99,12 @@ class ControllerBuilder
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())){
+            $methodBody="\$db = {$mysqlPoolName}::defer();";
+        }else{
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = new {$beanName}();
@@ -166,8 +165,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())){
+            $methodBody="\$db = {$mysqlPoolName}::defer();";
+        }else{
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
@@ -227,8 +230,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())){
+            $methodBody="\$db = {$mysqlPoolName}::defer();";
+        }else{
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
@@ -266,8 +273,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())){
+            $methodBody="\$db = {$mysqlPoolName}::defer();";
+        }else{
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 
@@ -308,8 +319,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())){
+            $methodBody="\$db = {$mysqlPoolName}::defer();";
+        }else{
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$page = (int)\$param['page']??1;
 \$limit = (int)\$param['limit']??20;
@@ -389,13 +404,13 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-//        if (file_exists($fileName . '.php')) {
-//            echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
-//            if (trim(fgets(STDIN)) == 'n') {
-//                echo "已结束运行";
-//                return false;
-//            }
-//        }
+        if (file_exists($fileName . '.php')) {
+            echo "(Controller)当前路径已经存在文件,是否覆盖?(y/n)\n";
+            if (trim(fgets(STDIN)) == 'n') {
+                echo "已结束运行";
+                return false;
+            }
+        }
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);
 
