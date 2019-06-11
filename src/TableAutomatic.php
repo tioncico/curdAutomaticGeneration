@@ -21,6 +21,7 @@ class TableAutomatic
     public $tableColumns;
     public $tableComment;
 
+
     public function __construct(string $tableName, string $tablePre='')
     {
         $this->tableName = $tableName;

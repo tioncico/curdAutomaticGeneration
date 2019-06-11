@@ -100,9 +100,9 @@ class ControllerBuilder
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
         if (empty($this->config->getMysqlPoolName())){
-            $methodBody="\$db = {$mysqlPoolName}::defer();";
+            $methodBody="\$db = {$mysqlPoolName}::defer();\n";
         }else{
-            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
         }
         $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
@@ -166,9 +166,9 @@ Body;
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
         if (empty($this->config->getMysqlPoolName())){
-            $methodBody="\$db = {$mysqlPoolName}::defer();";
+            $methodBody="\$db = {$mysqlPoolName}::defer();\n";
         }else{
-            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
         }
         $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
@@ -231,9 +231,9 @@ Body;
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
         if (empty($this->config->getMysqlPoolName())){
-            $methodBody="\$db = {$mysqlPoolName}::defer();";
+            $methodBody="\$db = {$mysqlPoolName}::defer();\n";
         }else{
-            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
         }
         $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
@@ -274,9 +274,9 @@ Body;
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
         if (empty($this->config->getMysqlPoolName())){
-            $methodBody="\$db = {$mysqlPoolName}::defer();";
+            $methodBody="\$db = {$mysqlPoolName}::defer();\n";
         }else{
-            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
         }
         $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
@@ -320,9 +320,9 @@ Body;
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
         if (empty($this->config->getMysqlPoolName())){
-            $methodBody="\$db = {$mysqlPoolName}::defer();";
+            $methodBody="\$db = {$mysqlPoolName}::defer();\n";
         }else{
-            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');";
+            $methodBody="\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
         }
         $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();

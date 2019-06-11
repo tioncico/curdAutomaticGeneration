@@ -9,9 +9,6 @@ include "./vendor/autoload.php";
 \EasySwoole\EasySwoole\Core::getInstance()->initialize();
 go(function () {
     $tableAutomatic = new \AutomaticGeneration\TableAutomatic('user_list');
-    $init = new \AutomaticGeneration\Init();
-    $init->initBaseController();
-    die;
     $path = 'User';
 
     $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
@@ -37,7 +34,7 @@ go(function () {
     $result = $modelBuilder->generateModel();
     var_dump($result);
 
-    $path='Api\\Admin\\User';
+    $path='Api\\User\\User';
     $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
     $controllerConfig->setBaseNamespace("App\\HttpController\\".$path);
 //    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
@@ -45,11 +42,12 @@ go(function () {
     $controllerConfig->setTableName($tableAutomatic->tableName);
     $controllerConfig->setTableComment($tableAutomatic->tableComment);
     $controllerConfig->setTableColumns($tableAutomatic->tableColumns);
-    $controllerConfig->setExtendClass("App\\HttpController\\".$path."\\Base");
+    $controllerConfig->setExtendClass(\App\HttpController\Base::class);
+//    $controllerConfig->setExtendClass("App\\HttpController\\".$path."\\Base");
     $controllerConfig->setModelClass($modelBuilder->getClassName());
     $controllerConfig->setBeanClass($beanBuilder->getClassName());
     $controllerConfig->setMysqlPoolClass(EasySwoole\MysqliPool\Mysql::class);
-    $controllerConfig->setMysqlPoolName('test');
+    $controllerConfig->setMysqlPoolName('mysql');
     $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
     $result = $controllerBuilder->generateController();
     var_dump($result);
