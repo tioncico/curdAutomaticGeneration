@@ -8,7 +8,7 @@
 
 namespace AutomaticGeneration;
 
-use App\Utility\Pool\MysqlPoolObject;
+use EasySwoole\Mysqli\Mysqli;
 
 class MysqlTable
 {
@@ -18,7 +18,7 @@ class MysqlTable
     protected $db;
     protected $dbName;
 
-    public function __construct(MysqlPoolObject $db, $dbName)
+    public function __construct(Mysqli $db, $dbName)
     {
         $this->db = $db;
         $this->dbName = $dbName;
@@ -44,7 +44,7 @@ class MysqlTable
     /**
      * @return MysqlPoolObject
      */
-    public function getDb(): MysqlPoolObject
+    public function getDb(): Mysqli
     {
         return $this->db;
     }
