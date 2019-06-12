@@ -10,7 +10,7 @@ $mysqlConfig = new \EasySwoole\Mysqli\Config(\EasySwoole\EasySwoole\Config::getI
 $db = \EasySwoole\MysqliPool\Mysql::defer('mysql');
 
 $mysqlTable = new \AutomaticGeneration\MysqlTable($db, \EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL.database'));
-$tableName = $this->tableName;
+$tableName = 'user_list;
 $tableColumns = $mysqlTable->getColumnList($tableName);
 $tableComment = $mysqlTable->getComment($tableName);
 ```
