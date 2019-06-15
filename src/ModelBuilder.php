@@ -152,7 +152,7 @@ class ModelBuilder
 if (empty(\$data)){
     return false;
 }
-return \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->update(\$this->table, \$data);
+return \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->update(\$this->table, \$data);
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -175,7 +175,7 @@ Body;
         $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
 
         $methodBody = <<<Body
-return  \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->delete(\$this->table);
+return  \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->delete(\$this->table);
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -196,7 +196,7 @@ Body;
         $method->setReturnType('bool');
 
         $methodBody = <<<Body
-return \$this->getDbConnection()->insert(\$this->table, \$bean->toArray(null, \$bean::FILTER_NOT_NULL));
+return \$this->getDb()->insert(\$this->table, \$bean->toArray(null, \$bean::FILTER_NOT_NULL));
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -219,7 +219,7 @@ Body;
         $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
 
         $methodBody = <<<Body
-\$info = \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table);
+\$info = \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table);
 if (empty(\$info)) {
     return null;
 }
@@ -257,14 +257,14 @@ Body;
 
         $methodBody = <<<Body
 if (!empty(\$keyword)) {
-    \$this->getDbConnection()->where('$keyword', '%' . \$keyword . '%', 'like');
+    \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
 }
 
-\$list = \$this->getDbConnection()
+\$list = \$this->getDb()
     ->withTotalCount()
     ->orderBy(\$this->primaryKey, 'DESC')
     ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize]);
-\$total = \$this->getDbConnection()->getTotalCount();
+\$total = \$this->getDb()->getTotalCount();
 return ['total' => \$total, 'list' => \$list];
 Body;
         //配置方法内容
