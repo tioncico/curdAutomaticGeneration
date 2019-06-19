@@ -26,6 +26,7 @@ class ModelConfig extends SplBean
         'log'
     ];//文件名生成时,忽略的字符串(list,log等)
     protected $primaryKey;
+    protected $isConfirmWrite = true;
 
 
     /**
@@ -75,10 +76,10 @@ class ModelConfig extends SplBean
     {
         $this->baseNamespace = $baseNamespace;
         //设置下基础目录
-        $pathArr = explode('\\',$baseNamespace);
+        $pathArr = explode('\\', $baseNamespace);
         $app = array_shift($pathArr);
-        if ($app=='App'){
-            $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . implode('/',$pathArr));
+        if ($app == 'App') {
+            $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' . \AutomaticGeneration\AppLogic::getAppPath() . implode('/', $pathArr));
         }
     }
 
@@ -192,6 +193,22 @@ class ModelConfig extends SplBean
     public function setRealTableName($realTableName): void
     {
         $this->realTableName = $realTableName;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isConfirmWrite(): bool
+    {
+        return $this->isConfirmWrite;
+    }
+
+    /**
+     * @param bool $isConfirmWrite
+     */
+    public function setIsConfirmWrite(bool $isConfirmWrite): void
+    {
+        $this->isConfirmWrite = $isConfirmWrite;
     }//模型的主键
 
 }

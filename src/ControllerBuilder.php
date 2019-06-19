@@ -404,11 +404,13 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-        if (file_exists($fileName . '.php')) {
-            echo "(Controller)当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行\n";
-                return false;
+        if ($this->config->isConfirmWrite()){
+            if (file_exists($fileName . '.php')) {
+                echo "(Controller)当前路径已经存在文件,是否覆盖?(y/n)\n";
+                if (trim(fgets(STDIN)) == 'n') {
+                    echo "已结束运行\n";
+                    return false;
+                }
             }
         }
         $content = "<?php\n\n{$fileContent}\n";

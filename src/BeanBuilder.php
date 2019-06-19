@@ -38,7 +38,7 @@ class BeanBuilder
         $this->config = $config;
         $this->createBaseDirectory($config->getBaseDirectory());
         $realTableName = $this->setRealTableName() . 'Bean';
-        $this->className = $this->config->getBaseNamespace().'\\'.$realTableName;
+        $this->className = $this->config->getBaseNamespace() . '\\' . $realTableName;
 
     }
 
@@ -91,13 +91,13 @@ class BeanBuilder
      */
     function setRealTableName()
     {
-        if ($this->config->getRealTableName()){
+        if ($this->config->getRealTableName()) {
             return $this->config->getRealTableName();
         }
         //先去除前缀
         $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
         //去除后缀
-        $tableName = str_replace($this->config->getIgnoreString(),'',$tableName);
+        $tableName = str_replace($this->config->getIgnoreString(), '', $tableName);
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
@@ -159,11 +159,13 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-        if (file_exists($fileName . '.php')) {
-            echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行\n";
-                return false;
+        if ($this->config->isConfirmWrite()) {
+            if (file_exists($fileName . '.php')) {
+                echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
+                if (trim(fgets(STDIN)) == 'n') {
+                    echo "已结束运行\n";
+                    return false;
+                }
             }
         }
         $content = "<?php\n\n{$fileContent}\n";
