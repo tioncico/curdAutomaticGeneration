@@ -37,7 +37,7 @@ class ModelBuilder
         $this->config = $config;
         $this->createBaseDirectory($config->getBaseDirectory());
         $realTableName = $this->setRealTableName() . 'Model';
-        $this->className = $this->config->getBaseNamespace().'\\'.$realTableName;
+        $this->className = $this->config->getBaseNamespace() . '\\' . $realTableName;
     }
 
     /**
@@ -49,7 +49,7 @@ class ModelBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-       File::createDirectory($baseDirectory);
+        File::createDirectory($baseDirectory);
     }
 
     /**
@@ -69,8 +69,25 @@ class ModelBuilder
         $this->addAddMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
         $this->addDeleteMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
         $this->addUpdateMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
+        //配置根据索引来查询的方法项
+        $indexList = $this->getIndexList($this->config->getTableColumns());
+        foreach ($indexList as $index) {
+            $this->addIndexGetAllMethod($phpClass, $index);
+        }
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
+    }
+
+    protected function getIndexList($columns)
+    {
+        $list = [];
+        var_dump($columns);
+        foreach ($columns as $column) {
+            if ($column['Key'] == 'MUL') {
+                $list[] = $column['Field'];
+            }
+        }
+        return $list;
     }
 
     /**
@@ -211,15 +228,17 @@ Body;
         $method->addComment("默认根据主键({$this->config->getPrimaryKey()})进行搜索");
         $method->addComment("@getOne");
         $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
+        $method->addComment("@param  string \$field");//默认为使用Bean注释
 
         //配置返回类型
         $method->setReturnType($namespaceBeanName)->setReturnNullable();
         //配置参数为bean
         $method->addParameter('bean')->setTypeHint($namespaceBeanName);
+        $method->addParameter('field', '*')->setTypeHint('string');
         $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
 
         $methodBody = <<<Body
-\$info = \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table);
+\$info = \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table,\$field);
 if (empty(\$info)) {
     return null;
 }
@@ -244,26 +263,91 @@ Body;
         //配置方法参数
         $method->addParameter('page', 1)
             ->setTypeHint('int');
-        $method->addParameter('keyword', null)
-            ->setTypeHint('string');
+        if (!empty($keyword)){
+            $method->addParameter('keyword', null)
+                ->setTypeHint('string');
+        }
         $method->addParameter('pageSize', 10)
             ->setTypeHint('int');
+        $method->addParameter('field', '*')->setTypeHint('string');
+
+        foreach ($method->getParameters() as $parameter) {
+            $method->addComment("@param  " . $parameter->getTypeHint() . '  $' . $parameter->getName() . '  ' . $parameter->getDefaultValue());
+        }
+
+        //配置返回类型
+        $method->setReturnType('array');
+
+        $methodBody = '';
+        if (!empty($keyword)) {
+            $methodBody .= <<<Body
+if (!empty(\$keyword)) {
+    \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
+}
+Body;
+        }
+
+        $methodBody .= <<<Body
+        
+\$list = \$this->getDb()
+    ->withTotalCount()
+    ->orderBy(\$this->primaryKey, 'DESC')
+    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize],\$field);
+\$total = \$this->getDb()->getTotalCount();
+return ['total' => \$total, 'list' => \$list];
+Body;
+        //配置方法内容
+        $method->setBody($methodBody);
+        $method->addComment('@return array[total,list]');
+    }
+
+    protected function addIndexGetAllMethod(ClassType $phpClass, $columnName, $keyword = '')
+    {
+        $columnName = Str::camel($columnName);
+        $method = $phpClass->addMethod('getAllBy' . Str::studly($columnName));
+        if (empty($keyword)) {
+            echo "(getAllBy{$columnName})请输入搜索的关键字\n";
+            $keyword = trim(fgets(STDIN));
+        }
+        //配置基础注释
+        $method->addComment("@getAll{$columnName}");
+        if (!empty($keyword)) {
+            $method->addComment("@keyword $keyword");
+        }
+        //配置方法参数
+        $method->addParameter($columnName);
+        $method->addParameter('page', 1)
+            ->setTypeHint('int');
+        if (!empty($keyword)){
+            $method->addParameter('keyword', null)
+                ->setTypeHint('string');
+        }
+        $method->addParameter('pageSize', 10)
+            ->setTypeHint('int');
+        $method->addParameter('field', '*')->setTypeHint('string');
         foreach ($method->getParameters() as $parameter) {
             $method->addComment("@param  " . $parameter->getTypeHint() . '  ' . $parameter->getName() . '  ' . $parameter->getDefaultValue());
         }
 
         //配置返回类型
         $method->setReturnType('array');
-
-        $methodBody = <<<Body
+        $methodBody = '';
+        if (!empty($keyword)) {
+            $methodBody .= <<<Body
 if (!empty(\$keyword)) {
     \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
 }
+Body;
+        }
+
+        $methodBody .= <<<Body
+        
+\$this->getDb()->where('$columnName',$$columnName);
 
 \$list = \$this->getDb()
     ->withTotalCount()
     ->orderBy(\$this->primaryKey, 'DESC')
-    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize]);
+    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize],\$field);
 \$total = \$this->getDb()->getTotalCount();
 return ['total' => \$total, 'list' => \$list];
 Body;
@@ -310,7 +394,7 @@ Body;
         if (file_exists($fileName . '.php')) {
             echo "(Model)当前路径已经存在文件,是否覆盖?(y/n)\n";
             if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行";
+                echo "已结束运行\n";
                 return false;
             }
         }

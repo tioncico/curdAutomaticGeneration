@@ -10,7 +10,7 @@ $mysqlConfig = new \EasySwoole\Mysqli\Config(\EasySwoole\EasySwoole\Config::getI
 $db = \EasySwoole\MysqliPool\Mysql::defer('mysql');
 
 $mysqlTable = new \AutomaticGeneration\MysqlTable($db, \EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL.database'));
-$tableName = 'user_list;
+$tableName = 'user_list';
 $tableColumns = $mysqlTable->getColumnList($tableName);
 $tableComment = $mysqlTable->getComment($tableName);
 ```
@@ -77,6 +77,6 @@ $controllerConfig->setMysqlPoolName('test');
 $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
 $result = $controllerBuilder->generateController();
 ```
-> 生成控制器的其他配置文件可以看养马，以及依赖model和bean的className
+> 生成控制器的其他配置文件可以看源码，以及依赖model和bean的className
 
 
