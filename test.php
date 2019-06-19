@@ -17,17 +17,17 @@ go(function () {
     $tableComment = $mysqlTable->getComment($tableName);
 
     $path = 'User';
-
-    $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
-    $beanConfig->setBaseNamespace("App\\Model\\".$path);
-//    $beanConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
-    $beanConfig->setTablePre('');
-    $beanConfig->setTableName('user_list');
-    $beanConfig->setTableComment($tableComment);
-    $beanConfig->setTableColumns($tableColumns);
-    $beanBuilder = new \AutomaticGeneration\BeanBuilder($beanConfig);
-    $result = $beanBuilder->generateBean();
-    var_dump(\App\Model\User\UserBean::class);
+//
+//    $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
+//    $beanConfig->setBaseNamespace("App\\Model\\".$path);
+////    $beanConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
+//    $beanConfig->setTablePre('');
+//    $beanConfig->setTableName('user_list');
+//    $beanConfig->setTableComment($tableComment);
+//    $beanConfig->setTableColumns($tableColumns);
+//    $beanBuilder = new \AutomaticGeneration\BeanBuilder($beanConfig);
+//    $result = $beanBuilder->generateBean();
+//    var_dump(\App\Model\User\UserBean::class);
     $path = 'User';
     $modelConfig = new \AutomaticGeneration\Config\ModelConfig();
     $modelConfig->setBaseNamespace("App\\Model\\".$path);

@@ -73,6 +73,7 @@ class ModelBuilder
         $indexList = $this->getIndexList($this->config->getTableColumns());
         foreach ($indexList as $index) {
             $this->addIndexGetAllMethod($phpClass, $index);
+            $this->addIndexGetOneMethod($phpClass, $index);
         }
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
@@ -81,10 +82,9 @@ class ModelBuilder
     protected function getIndexList($columns)
     {
         $list = [];
-        var_dump($columns);
         foreach ($columns as $column) {
             if ($column['Key'] == 'MUL') {
-                $list[] = $column['Field'];
+                $list[] = $column;
             }
         }
         return $list;
@@ -248,6 +248,35 @@ Body;
         $method->addComment("@return $beanName");
     }
 
+    protected function addIndexGetOneMethod(ClassType $phpClass, $column)
+    {
+        $method = $phpClass->addMethod('getOneBy' . Str::studly($column['Field']));
+        $beanName = $this->setRealTableName() . 'Bean';;
+        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
+        //配置基础注释
+        $method->addComment("根据索引({$column['Field']})进行搜索");
+        $method->addComment("@getOne");
+        $method->addComment("@param  " . $this->convertDbTypeToDocType($column['Type']) . " \${$column['Field']}");//默认为使用Bean注释
+        $method->addComment("@param  string \$field");//默认为使用Bean注释
+
+        //配置返回类型
+        $method->setReturnType($namespaceBeanName)->setReturnNullable();
+        //配置参数为bean
+        $method->addParameter($column['Field']);
+        $method->addParameter('field', '*')->setTypeHint('string');
+        $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
+
+        $methodBody = <<<Body
+\$info = \$this->getDb()->where('{$column['Field']}', \${$column['Field']})->getOne(\$this->table,\$field);
+if (empty(\$info)) {
+    return null;
+}
+return new $beanName(\$info);
+Body;
+        $method->setBody($methodBody);
+        $method->addComment("@return $beanName");
+    }
+
     protected function addGetAllMethod(ClassType $phpClass, $keyword = '')
     {
         $method = $phpClass->addMethod('getAll');
@@ -263,7 +292,7 @@ Body;
         //配置方法参数
         $method->addParameter('page', 1)
             ->setTypeHint('int');
-        if (!empty($keyword)){
+        if (!empty($keyword)) {
             $method->addParameter('keyword', null)
                 ->setTypeHint('string');
         }
@@ -301,24 +330,23 @@ Body;
         $method->addComment('@return array[total,list]');
     }
 
-    protected function addIndexGetAllMethod(ClassType $phpClass, $columnName, $keyword = '')
+    protected function addIndexGetAllMethod(ClassType $phpClass, $column, $keyword = '')
     {
-        $columnName = Str::camel($columnName);
-        $method = $phpClass->addMethod('getAllBy' . Str::studly($columnName));
+        $method = $phpClass->addMethod('getAllBy' . Str::studly($column['Field']));
         if (empty($keyword)) {
-            echo "(getAllBy{$columnName})请输入搜索的关键字\n";
+            echo "(getAllBy{$column['Field']})请输入搜索的关键字\n";
             $keyword = trim(fgets(STDIN));
         }
         //配置基础注释
-        $method->addComment("@getAll{$columnName}");
+        $method->addComment("@getAll{$column['Field']}");
         if (!empty($keyword)) {
             $method->addComment("@keyword $keyword");
         }
         //配置方法参数
-        $method->addParameter($columnName);
+        $method->addParameter($column['Field']);
         $method->addParameter('page', 1)
             ->setTypeHint('int');
-        if (!empty($keyword)){
+        if (!empty($keyword)) {
             $method->addParameter('keyword', null)
                 ->setTypeHint('string');
         }
@@ -342,7 +370,7 @@ Body;
 
         $methodBody .= <<<Body
         
-\$this->getDb()->where('$columnName',$$columnName);
+\$this->getDb()->where('{$column['Field']}',\${$column['Field']});
 
 \$list = \$this->getDb()
     ->withTotalCount()
