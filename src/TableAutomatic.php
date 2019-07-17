@@ -32,7 +32,9 @@ class TableAutomatic
     function initTableInfo()
     {
         $mysqlConfig = new \EasySwoole\Mysqli\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
-        Mysql::getInstance()->register('mysql',$mysqlConfig);
+        if (!Mysql::getInstance()->pool('mysql')){
+            Mysql::getInstance()->register('mysql',$mysqlConfig);
+        }
         $db = Mysql::defer('mysql');
 
         $mysqlTable = new MysqlTable($db, \EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL.database'));

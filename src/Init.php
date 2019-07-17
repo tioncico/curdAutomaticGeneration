@@ -16,6 +16,7 @@ use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\Mysqli\Mysqli;
 use EasySwoole\Utility\File;
+use EasySwoole\Validate\Validate;
 use Nette\PhpGenerator\PhpNamespace;
 
 class Init
@@ -95,7 +96,7 @@ BODY
 
         $phpClass->addMethod('getValidateRule')->setAbstract(true)->setVisibility('protected')
             ->setReturnNullable(true)
-            ->setReturnType('bool')
+            ->setReturnType(Validate::class)
             ->addParameter('action')->setTypeHint('string')->setNullable(true);
 
         return $this->createPHPDocument($this->appPath . '/HttpController/' . $realTableName, $phpNamespace);
