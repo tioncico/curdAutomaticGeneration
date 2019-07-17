@@ -16,7 +16,6 @@ use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\Mysqli\Mysqli;
 use EasySwoole\Utility\File;
-use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
 
 class Init
@@ -25,7 +24,6 @@ class Init
 
     public function __construct(?string $appPath = null)
     {
-        defined('EASYSWOOLE_ROOT') or define('EASYSWOOLE_ROOT', dirname(__FILE__, 2));
         $this->appPath = EASYSWOOLE_ROOT . '/' . ($appPath??AppLogic::getAppPath());
     }
 
