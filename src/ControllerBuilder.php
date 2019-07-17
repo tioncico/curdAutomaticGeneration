@@ -26,6 +26,7 @@ class ControllerBuilder
      * @var $config BeanConfig;
      */
     protected $config;
+    protected $validateList=[];
 
     /**
      * BeanBuilder constructor.
@@ -76,8 +77,13 @@ class ControllerBuilder
         $this->addGetAllDataMethod($phpClass);
         $this->addDeleteDataMethod($phpClass);
 
+        $this->addValidateMethod($phpClass);
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
+    }
+
+    function addValidateMethod($phpClass){
+
     }
 
     function addAddDataMethod(ClassType $phpClass)

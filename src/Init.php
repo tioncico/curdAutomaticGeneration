@@ -26,9 +26,6 @@ class Init
     public function __construct(?string $appPath = null)
     {
         defined('EASYSWOOLE_ROOT') or define('EASYSWOOLE_ROOT', dirname(__FILE__, 2));
-        require_once EASYSWOOLE_ROOT . '/EasySwooleEvent.php';
-        \EasySwoole\EasySwoole\Core::getInstance()->initialize();
-
         $this->appPath = EASYSWOOLE_ROOT . '/' . ($appPath??AppLogic::getAppPath());
     }
 
