@@ -25,10 +25,10 @@ $init->initBaseController();
 
 ## 生成bean
 ```php
-$path = 'User';
+$path = '\\User';
 
 $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
-$beanConfig->setBaseNamespace("App\\Model\\".$path);
+$beanConfig->setBaseNamespace("App\\Model".$path);
 //    $beanConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
 $beanConfig->setTablePre('');
 $beanConfig->setTableName('user_list');
@@ -43,9 +43,9 @@ var_dump(\App\Model\User\UserBean::class);
 
 ## 生成model
 ```php
-$path = 'User';
+$path = '\\User';
 $modelConfig = new \AutomaticGeneration\Config\ModelConfig();
-$modelConfig->setBaseNamespace("App\\Model\\".$path);
+$modelConfig->setBaseNamespace("App\\Model".$path);
 //    $modelConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
 $modelConfig->setTablePre("");
 $modelConfig->setExtendClass(\App\Model\BaseModel::class);
@@ -61,15 +61,15 @@ var_dump($result);
 
 ## 生成controller
 ```php
-$path='Api\\Admin\\User';
+$path='\\Api\\Admin\\User';
 $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
-$controllerConfig->setBaseNamespace("App\\HttpController\\".$path);
+$controllerConfig->setBaseNamespace("App\\HttpController".$path);
 //    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
 $controllerConfig->setTablePre('');
 $controllerConfig->setTableName('user_list');
 $controllerConfig->setTableComment($tableComment);
 $controllerConfig->setTableColumns($tableColumns);
-$controllerConfig->setExtendClass("App\\HttpController\\".$path."\\Base");
+$controllerConfig->setExtendClass("App\\HttpController".$path."\\Base");
 $controllerConfig->setModelClass($modelBuilder->getClassName());
 $controllerConfig->setBeanClass($beanBuilder->getClassName());
 $controllerConfig->setMysqlPoolClass(EasySwoole\MysqliPool\Mysql::class);
