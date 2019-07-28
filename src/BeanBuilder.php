@@ -110,7 +110,6 @@ class BeanBuilder
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
-        var_dump($tableName);
         return $tableName;
     }
 
