@@ -97,6 +97,13 @@ class ModelBuilder
      * @author tioncico
      * Time: 下午11:55
      */
+    /**
+     * 处理表真实名称
+     * setRealTableName
+     * @return bool|mixed|string
+     * @author tioncico
+     * Time: 下午11:55
+     */
     function setRealTableName()
     {
         if ($this->config->getRealTableName()) {
@@ -105,10 +112,13 @@ class ModelBuilder
         //先去除前缀
         $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
         //去除后缀
-        $tableName = str_replace($this->config->getIgnoreString(), '', $tableName);
+        foreach ($this->config->getIgnoreString() as $string) {
+            $tableName = rtrim($tableName, $string);
+        }
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
+        var_dump($tableName);
         return $tableName;
     }
 
