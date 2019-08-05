@@ -270,7 +270,7 @@ Body;
         }
         $setPrimaryKeyMethodName = "set" . Str::studly($this->config->getPrimaryKey());
         $methodBody .= <<<Body
-\$rs = \$model->update(\$bean, \$updateBean->toArray([], \$updateBean::FILTER_NOT_EMPTY));
+\$rs = \$model->update(\$bean, \$updateBean->toArray([], \$updateBean::FILTER_NOT_NULL));
 if (\$rs) {
     \$this->writeJson(Status::CODE_OK, \$rs, "success");
 } else {
