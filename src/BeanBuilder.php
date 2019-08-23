@@ -9,6 +9,7 @@
 namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\BeanConfig;
+use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
@@ -25,6 +26,8 @@ class BeanBuilder
      */
     protected $config;
 
+    protected $className;
+
     /**
      * BeanBuilder constructor.
      * @param        $config
@@ -34,6 +37,9 @@ class BeanBuilder
     {
         $this->config = $config;
         $this->createBaseDirectory($config->getBaseDirectory());
+        $realTableName = $this->setRealTableName() . 'Bean';
+        $this->className = $this->config->getBaseNamespace() . '\\' . $realTableName;
+
     }
 
     /**
@@ -45,13 +51,7 @@ class BeanBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-        if (!is_dir((string)$baseDirectory)) {
-            if (!@mkdir($baseDirectory, 0755)) throw new \Exception("Failed to create directory {$baseDirectory}");
-            @chmod($baseDirectory, 0755);  // if umask
-            if (!is_writable($baseDirectory)) {
-                throw new \Exception("The directory {$baseDirectory} cannot be written. Please set the permissions manually");
-            }
-        }
+        File::createDirectory($baseDirectory);
     }
 
     /**
@@ -89,15 +89,24 @@ class BeanBuilder
      * @author tioncico
      * Time: 下午11:55
      */
+    /**
+     * 处理表真实名称
+     * setRealTableName
+     * @return bool|mixed|string
+     * @author tioncico
+     * Time: 下午11:55
+     */
     function setRealTableName()
     {
-        if ($this->config->getRealTableName()){
+        if ($this->config->getRealTableName()) {
             return $this->config->getRealTableName();
         }
         //先去除前缀
         $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
         //去除后缀
-        $tableName = str_replace($this->config->getIgnoreString(),'',$tableName);
+        foreach ($this->config->getIgnoreString() as $string) {
+            $tableName = rtrim($tableName, $string);
+        }
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
@@ -159,11 +168,13 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-        if (file_exists($fileName . '.php')) {
-            echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行";
-                return false;
+        if ($this->config->isConfirmWrite()) {
+            if (file_exists($fileName . '.php')) {
+                echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
+                if (trim(fgets(STDIN)) == 'n') {
+                    echo "已结束运行\n";
+                    return false;
+                }
             }
         }
         $content = "<?php\n\n{$fileContent}\n";
@@ -172,4 +183,11 @@ Body;
         return $result == false ? $result : $fileName . '.php';
     }
 
+    /**
+     * @return mixed
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
 }

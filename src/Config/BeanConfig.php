@@ -24,6 +24,7 @@ class BeanConfig extends SplBean
         'list',
         'log'
     ];
+    protected $isConfirmWrite=true;
 
     /**
      * @return mixed
@@ -71,6 +72,12 @@ class BeanConfig extends SplBean
     public function setBaseNamespace($baseNamespace)
     {
         $this->baseNamespace = $baseNamespace;
+        //设置下基础目录
+        $pathArr = explode('\\',$baseNamespace);
+        $app = array_shift($pathArr);
+        if ($app=='App'){
+            $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . implode('/',$pathArr));
+        }
     }
 
     /**
@@ -151,6 +158,22 @@ class BeanConfig extends SplBean
     public function setTableColumns($tableColumns): void
     {
         $this->tableColumns = $tableColumns;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isConfirmWrite(): bool
+    {
+        return $this->isConfirmWrite;
+    }
+
+    /**
+     * @param bool $isConfirmWrite
+     */
+    public function setIsConfirmWrite(bool $isConfirmWrite): void
+    {
+        $this->isConfirmWrite = $isConfirmWrite;
     }
 
 

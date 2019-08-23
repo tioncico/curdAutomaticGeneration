@@ -10,13 +10,7 @@ namespace AutomaticGeneration;
 
 use App\HttpController\Api\ApiBase;
 use App\HttpController\Base;
-use App\Model\BaseModel;
-use App\Model\UserBean;
-use App\Model\UserModel;
-use App\Utility\Pool\MysqlPool;
-use AutomaticGeneration\Config\BeanConfig;
-use AutomaticGeneration\Config\ControllerConfig;
-use AutomaticGeneration\Config\ModelConfig;
+use EasySwoole\Mysqli\Mysqli;
 use EasySwoole\MysqliPool\Mysql;
 
 class TableAutomatic
@@ -27,15 +21,22 @@ class TableAutomatic
     public $tableColumns;
     public $tableComment;
 
-    public function __construct($tableName, $tablePre)
+
+    public function __construct(string $tableName, string $tablePre='')
     {
         $this->tableName = $tableName;
         $this->tablePre = $tablePre;
         $this->initTableInfo();
     }
 
-    function initTableInfo($db)
+    function initTableInfo()
     {
+        $mysqlConfig = new \EasySwoole\Mysqli\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
+        if (!Mysql::getInstance()->pool('mysql')){
+            Mysql::getInstance()->register('mysql',$mysqlConfig);
+        }
+        $db = Mysql::defer('mysql');
+
         $mysqlTable = new MysqlTable($db, \EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL.database'));
         $tableName = $this->tableName;
         $tableColumns = $mysqlTable->getColumnList($tableName);

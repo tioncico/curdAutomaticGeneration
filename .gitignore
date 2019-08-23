@@ -3,3 +3,8 @@
 ./easywoole
 ./EasySwooleEvent.php
 ./App
+./.idea/*
+./EasySwooleEvent.php
+./composer.lock
+./easyswoole
+./test.php

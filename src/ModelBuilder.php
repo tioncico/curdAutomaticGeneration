@@ -9,6 +9,7 @@
 namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ModelConfig;
+use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
@@ -24,6 +25,7 @@ class ModelBuilder
      * @var $config ModelConfig
      */
     protected $config;
+    protected $className;
 
     /**
      * BeanBuilder constructor.
@@ -34,6 +36,8 @@ class ModelBuilder
     {
         $this->config = $config;
         $this->createBaseDirectory($config->getBaseDirectory());
+        $realTableName = $this->setRealTableName() . 'Model';
+        $this->className = $this->config->getBaseNamespace() . '\\' . $realTableName;
     }
 
     /**
@@ -45,13 +49,7 @@ class ModelBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-        if (!is_dir((string)$baseDirectory)) {
-            if (!@mkdir($baseDirectory, 0755)) throw new \Exception("Failed to create directory {$baseDirectory}");
-            @chmod($baseDirectory, 0755);  // if umask
-            if (!is_writable($baseDirectory)) {
-                throw new \Exception("The directory {$baseDirectory} cannot be written. Please set the permissions manually");
-            }
-        }
+        File::createDirectory($baseDirectory);
     }
 
     /**
@@ -71,10 +69,34 @@ class ModelBuilder
         $this->addAddMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
         $this->addDeleteMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
         $this->addUpdateMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
+        //配置根据索引来查询的方法项
+        $indexList = $this->getIndexList($this->config->getTableColumns());
+        foreach ($indexList as $index) {
+            $this->addIndexGetAllMethod($phpClass, $index);
+            $this->addIndexGetOneMethod($phpClass, $index);
+        }
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
     }
 
+    protected function getIndexList($columns)
+    {
+        $list = [];
+        foreach ($columns as $column) {
+            if ($column['Key'] == 'MUL') {
+                $list[] = $column;
+            }
+        }
+        return $list;
+    }
+
+    /**
+     * 处理表真实名称
+     * setRealTableName
+     * @return bool|mixed|string
+     * @author tioncico
+     * Time: 下午11:55
+     */
     /**
      * 处理表真实名称
      * setRealTableName
@@ -90,7 +112,9 @@ class ModelBuilder
         //先去除前缀
         $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
         //去除后缀
-        $tableName = str_replace($this->config->getIgnoreString(), '', $tableName);
+        foreach ($this->config->getIgnoreString() as $string) {
+            $tableName = rtrim($tableName, $string);
+        }
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
@@ -154,7 +178,7 @@ class ModelBuilder
 if (empty(\$data)){
     return false;
 }
-return \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->update(\$this->table, \$data);
+return \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->update(\$this->table, \$data);
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -177,7 +201,7 @@ Body;
         $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
 
         $methodBody = <<<Body
-return  \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->delete(\$this->table);
+return  \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->delete(\$this->table);
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -198,7 +222,7 @@ Body;
         $method->setReturnType('bool');
 
         $methodBody = <<<Body
-return \$this->getDbConnection()->insert(\$this->table, \$bean->toArray(null, \$bean::FILTER_NOT_NULL));
+return \$this->getDb()->insert(\$this->table, \$bean->toArray(null, \$bean::FILTER_NOT_NULL));
 Body;
         $method->setBody($methodBody);
         $method->addComment("@return bool");
@@ -213,15 +237,46 @@ Body;
         $method->addComment("默认根据主键({$this->config->getPrimaryKey()})进行搜索");
         $method->addComment("@getOne");
         $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
+        $method->addComment("@param  string \$field");//默认为使用Bean注释
 
         //配置返回类型
         $method->setReturnType($namespaceBeanName)->setReturnNullable();
         //配置参数为bean
         $method->addParameter('bean')->setTypeHint($namespaceBeanName);
+        $method->addParameter('field', '*')->setTypeHint('string');
         $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
 
         $methodBody = <<<Body
-\$info = \$this->getDbConnection()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table);
+\$info = \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table,\$field);
+if (empty(\$info)) {
+    return null;
+}
+return new $beanName(\$info);
+Body;
+        $method->setBody($methodBody);
+        $method->addComment("@return $beanName");
+    }
+
+    protected function addIndexGetOneMethod(ClassType $phpClass, $column)
+    {
+        $method = $phpClass->addMethod('getOneBy' . Str::studly($column['Field']));
+        $beanName = $this->setRealTableName() . 'Bean';;
+        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
+        //配置基础注释
+        $method->addComment("根据索引({$column['Field']})进行搜索");
+        $method->addComment("@getOne");
+        $method->addComment("@param  " . $this->convertDbTypeToDocType($column['Type']) . " \${$column['Field']}");//默认为使用Bean注释
+        $method->addComment("@param  string \$field");//默认为使用Bean注释
+
+        //配置返回类型
+        $method->setReturnType($namespaceBeanName)->setReturnNullable();
+        //配置参数为bean
+        $method->addParameter($column['Field']);
+        $method->addParameter('field', '*')->setTypeHint('string');
+        $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
+
+        $methodBody = <<<Body
+\$info = \$this->getDb()->where('{$column['Field']}', \${$column['Field']})->getOne(\$this->table,\$field);
 if (empty(\$info)) {
     return null;
 }
@@ -246,27 +301,91 @@ Body;
         //配置方法参数
         $method->addParameter('page', 1)
             ->setTypeHint('int');
-        $method->addParameter('keyword', null)
-            ->setTypeHint('string');
+        if (!empty($keyword)) {
+            $method->addParameter('keyword', null)
+                ->setTypeHint('string');
+        }
         $method->addParameter('pageSize', 10)
             ->setTypeHint('int');
+        $method->addParameter('field', '*')->setTypeHint('string');
+
+        foreach ($method->getParameters() as $parameter) {
+            $method->addComment("@param  " . $parameter->getTypeHint() . '  $' . $parameter->getName() . '  ' . $parameter->getDefaultValue());
+        }
+
+        //配置返回类型
+        $method->setReturnType('array');
+
+        $methodBody = '';
+        if (!empty($keyword)) {
+            $methodBody .= <<<Body
+if (!empty(\$keyword)) {
+    \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
+}
+Body;
+        }
+
+        $methodBody .= <<<Body
+        
+\$list = \$this->getDb()
+    ->withTotalCount()
+    ->orderBy(\$this->primaryKey, 'DESC')
+    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize],\$field);
+\$total = \$this->getDb()->getTotalCount();
+return ['total' => \$total, 'list' => \$list];
+Body;
+        //配置方法内容
+        $method->setBody($methodBody);
+        $method->addComment('@return array[total,list]');
+    }
+
+    protected function addIndexGetAllMethod(ClassType $phpClass, $column, $keyword = '')
+    {
+        $method = $phpClass->addMethod('getAllBy' . Str::studly($column['Field']));
+        if (empty($keyword)) {
+            echo "(getAllBy{$column['Field']})请输入搜索的关键字\n";
+            $keyword = trim(fgets(STDIN));
+        }
+        //配置基础注释
+        $method->addComment("@getAll{$column['Field']}");
+        if (!empty($keyword)) {
+            $method->addComment("@keyword $keyword");
+        }
+        //配置方法参数
+        $method->addParameter($column['Field']);
+        $method->addParameter('page', 1)
+            ->setTypeHint('int');
+        if (!empty($keyword)) {
+            $method->addParameter('keyword', null)
+                ->setTypeHint('string');
+        }
+        $method->addParameter('pageSize', 10)
+            ->setTypeHint('int');
+        $method->addParameter('field', '*')->setTypeHint('string');
         foreach ($method->getParameters() as $parameter) {
             $method->addComment("@param  " . $parameter->getTypeHint() . '  ' . $parameter->getName() . '  ' . $parameter->getDefaultValue());
         }
 
         //配置返回类型
         $method->setReturnType('array');
-
-        $methodBody = <<<Body
+        $methodBody = '';
+        if (!empty($keyword)) {
+            $methodBody .= <<<Body
 if (!empty(\$keyword)) {
-    \$this->getDbConnection()->where('$keyword', '%' . \$keyword . '%', 'like');
+    \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
 }
+Body;
+        }
 
-\$list = \$this->getDbConnection()
+        $methodBody .= <<<Body
+        
+\$this->getDb()->where('{$column['Field']}',\${$column['Field']});
+
+\$list = \$this->getDb()
     ->withTotalCount()
     ->orderBy(\$this->primaryKey, 'DESC')
-    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize]);
-\$total = \$this->getDbConnection()->getTotalCount();
+    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize],\$field);
+\$total = \$this->getDb()->getTotalCount();
 return ['total' => \$total, 'list' => \$list];
 Body;
         //配置方法内容
@@ -309,11 +428,13 @@ Body;
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
 //        var_dump($fileName.'.php');
-        if (file_exists($fileName . '.php')) {
-            echo "(Model)当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行";
-                return false;
+        if ($this->config->isConfirmWrite()) {
+            if (file_exists($fileName . '.php')) {
+                echo "(Model)当前路径已经存在文件,是否覆盖?(y/n)\n";
+                if (trim(fgets(STDIN)) == 'n') {
+                    echo "已结束运行\n";
+                    return false;
+                }
             }
         }
         $content = "<?php\n\n{$fileContent}\n";
@@ -321,4 +442,13 @@ Body;
         $result = file_put_contents($fileName . '.php', $content);
         return $result == false ? $result : $fileName . '.php';
     }
+
+    /**
+     * @return mixed
+     */
+    public function getClassName()
+    {
+        return $this->className;
+    }
+
 }

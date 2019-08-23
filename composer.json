@@ -3,11 +3,9 @@
   "type": "l",
   "license": "Apache-2.0",
   "require": {
-    "easyswoole/easyswoole": "3.x-dev",
-    "easyswoole/mysqli": "^1.1.9",
-    "easyswoole/mysqli-pool": "dev-master",
-    "nette/php-generator": "^3.2",
-    "phpunit/phpunit": "dev-master"
+    "easyswoole/easyswoole": "^3.0",
+    "easyswoole/mysqli-pool": "^1.0",
+    "nette/php-generator": "^3.2"
   },
   "authors": [
     {

@@ -10,7 +10,11 @@ namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ControllerConfig;
 use EasySwoole\Http\Message\Status;
+use EasySwoole\MysqliPool\Mysql;
+use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
+use EasySwoole\Validate\Validate;
+use http\Message\Body;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
 
@@ -25,6 +29,7 @@ class ControllerBuilder
      * @var $config BeanConfig;
      */
     protected $config;
+    protected $validateList = [];
 
     /**
      * BeanBuilder constructor.
@@ -46,13 +51,7 @@ class ControllerBuilder
      */
     protected function createBaseDirectory($baseDirectory)
     {
-        if (!is_dir((string)$baseDirectory)) {
-            if (!@mkdir($baseDirectory, 0755)) throw new \Exception("Failed to create directory {$baseDirectory}");
-            @chmod($baseDirectory, 0755);  // if umask
-            if (!is_writable($baseDirectory)) {
-                throw new \Exception("The directory {$baseDirectory} cannot be written. Please set the permissions manually");
-            }
-        }
+        File::createDirectory($baseDirectory);
     }
 
     /**
@@ -64,12 +63,14 @@ class ControllerBuilder
     public function generateController()
     {
         $realTableName = $this->setRealTableName();
-
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
         $phpNamespace->addUse($this->config->getMysqlPoolClass());
         $phpNamespace->addUse($this->config->getModelClass());
         $phpNamespace->addUse($this->config->getBeanClass());
         $phpNamespace->addUse(Status::class);
+        $phpNamespace->addUse(Validate::class);
+        $phpNamespace->addUse(Mysql::class);
+        $phpNamespace->addUse($this->config->getExtendClass());
         $phpClass = $phpNamespace->addClass($realTableName);
         $phpClass->addExtend($this->config->getExtendClass());
         $phpClass->addComment("{$this->config->getTableComment()}");
@@ -81,9 +82,78 @@ class ControllerBuilder
         $this->addGetAllDataMethod($phpClass);
         $this->addDeleteDataMethod($phpClass);
 
+        $this->addValidateMethod($phpClass);
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
     }
+
+    function addValidateMethod(ClassType $phpClass)
+    {
+        $method = $phpClass->addMethod('getValidateRule');
+        $method->addParameter("action")->setTypeHint('string')->setNullable();
+        $method->setReturnType(Validate::class)->setReturnNullable();
+        $methodBody = <<<Body
+\$validate = null;
+switch (\$action) {        
+{$this->validateGenerationStr()}
+}
+return \$validate;
+Body;
+        $method->setBody($methodBody);
+        $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
+    }
+
+    function validateGenerationStr()
+    {
+        $addColumnStr = '';
+        $updateColumnStr = '';
+        $getOneColumnStr = '';
+        $getAllColumnStr = '';
+        $deleteColumnStr = '';
+        $updateColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
+        $deleteColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
+        $getOneColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
+        $getAllColumnStr .= "        \$validate->addColumn('page', '页数')->optional();
+        \$validate->addColumn('limit', 'limit')->optional();
+        \$validate->addColumn('keyword', '关键词')->optional();";
+        foreach ($this->config->getTableColumns() as $column) {
+            if ($column['Key'] != 'PRI') {
+                $addColumnStr .= "        \$validate->addColumn('{$column['Field']}', '{$column['Comment']}')";
+                $updateColumnStr .= "        \$validate->addColumn('{$column['Field']}', '{$column['Comment']}')->optional();\n";
+                if ($column['Null'] == 'NO') {
+                    $addColumnStr .= "->required()";
+                } else {
+                    $addColumnStr .= "->optional()";
+                }
+                $addColumnStr .= ";\n";
+            }
+        }
+        $body = '';
+        $body .= <<<BODY
+    case 'add':
+        \$validate = new Validate();       
+$addColumnStr
+        break;
+    case 'update':
+        \$validate = new Validate();       
+$updateColumnStr
+        break;
+    case 'getAll':
+        \$validate = new Validate();       
+$getAllColumnStr
+        break;
+    case 'getOne':
+        \$validate = new Validate();       
+$getOneColumnStr
+        break;
+    case 'delete':
+        \$validate = new Validate();       
+$deleteColumnStr
+        break;
+BODY;
+       return $body;
+    }
+
 
     function addAddDataMethod(ClassType $phpClass)
     {
@@ -104,8 +174,12 @@ class ControllerBuilder
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())) {
+            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
+        } else {
+            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = new {$beanName}();
@@ -166,8 +240,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())) {
+            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
+        } else {
+            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
@@ -192,7 +270,7 @@ Body;
         }
         $setPrimaryKeyMethodName = "set" . Str::studly($this->config->getPrimaryKey());
         $methodBody .= <<<Body
-\$rs = \$model->update(\$bean, \$updateBean->toArray([], \$updateBean::FILTER_NOT_EMPTY));
+\$rs = \$model->update(\$bean, \$updateBean->toArray([], \$updateBean::FILTER_NOT_NULL));
 if (\$rs) {
     \$this->writeJson(Status::CODE_OK, \$rs, "success");
 } else {
@@ -227,8 +305,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())) {
+            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
+        } else {
+            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 \$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
@@ -266,8 +348,12 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())) {
+            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
+        } else {
+            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}(\$db);
 
@@ -308,11 +394,15 @@ Body;
         $modelName = end($modelNameArr);
         $beanNameArr = (explode('\\', $this->config->getBeanClass()));
         $beanName = end($beanNameArr);
-        $methodBody = <<<Body
-\$db = {$mysqlPoolName}::defer();
+        if (empty($this->config->getMysqlPoolName())) {
+            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
+        } else {
+            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
+        }
+        $methodBody .= <<<Body
 \$param = \$this->request()->getRequestParam();
-\$page = (int)\$param['page']??1;
-\$limit = (int)\$param['limit']??20;
+\$page = (int)(\$param['page']??1);
+\$limit = (int)(\$param['limit']??20);
 \$model = new {$modelName}(\$db);
 \$data = \$model->getAll(\$page, \$param['keyword']??null, \$limit);
 \$this->writeJson(Status::CODE_OK, \$data, 'success');
@@ -343,13 +433,14 @@ Body;
         //先去除前缀
         $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
         //去除后缀
-        $tableName = str_replace($this->config->getIgnoreString(), '', $tableName);
+        foreach ($this->config->getIgnoreString() as $string) {
+            $tableName = rtrim($tableName, $string);
+        }
         //下划线转驼峰,并且首字母大写
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
         return $tableName;
     }
-
     function getColumnDeaflutValue($column)
     {
 
@@ -389,13 +480,15 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-//        if (file_exists($fileName . '.php')) {
-//            echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
-//            if (trim(fgets(STDIN)) == 'n') {
-//                echo "已结束运行";
-//                return false;
-//            }
-//        }
+        if ($this->config->isConfirmWrite()) {
+            if (file_exists($fileName . '.php')) {
+                echo "(Controller)当前路径已经存在文件,是否覆盖?(y/n)\n";
+                if (trim(fgets(STDIN)) == 'n') {
+                    echo "已结束运行\n";
+                    return false;
+                }
+            }
+        }
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);
 
