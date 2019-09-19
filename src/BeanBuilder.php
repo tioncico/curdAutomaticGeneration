@@ -168,15 +168,6 @@ Body;
      */
     protected function createPHPDocument($fileName, $fileContent, $tableColumns)
     {
-        if ($this->config->isConfirmWrite()) {
-            if (file_exists($fileName . '.php')) {
-                echo "(Bean)当前路径已经存在文件,是否覆盖?(y/n)\n";
-                if (trim(fgets(STDIN)) == 'n') {
-                    echo "已结束运行\n";
-                    return false;
-                }
-            }
-        }
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);
 

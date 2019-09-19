@@ -21,13 +21,12 @@ class ModelConfig extends SplBean
     protected $baseDirectory;//生成的目录
     protected $baseNamespace;//生成的命名空间
     protected $tablePre = '';//数据表前缀
+    protected $keyword='';//getAll时的关键字
     protected $ignoreString = [
         'list',
         'log'
     ];//文件名生成时,忽略的字符串(list,log等)
     protected $primaryKey;
-    protected $isConfirmWrite = true;
-
 
     /**
      * @return mixed
@@ -196,19 +195,20 @@ class ModelConfig extends SplBean
     }
 
     /**
-     * @return bool
+     * @return string
      */
-    public function isConfirmWrite(): bool
+    public function getKeyword(): string
     {
-        return $this->isConfirmWrite;
+        return $this->keyword;
     }
 
     /**
-     * @param bool $isConfirmWrite
+     * @param string $keyword
      */
-    public function setIsConfirmWrite(bool $isConfirmWrite): void
+    public function setKeyword(string $keyword): void
     {
-        $this->isConfirmWrite = $isConfirmWrite;
-    }//模型的主键
+        $this->keyword = $keyword;
+    }
+
 
 }

@@ -24,7 +24,6 @@ class BeanConfig extends SplBean
         'list',
         'log'
     ];
-    protected $isConfirmWrite=true;
 
     /**
      * @return mixed
@@ -158,22 +157,6 @@ class BeanConfig extends SplBean
     public function setTableColumns($tableColumns): void
     {
         $this->tableColumns = $tableColumns;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isConfirmWrite(): bool
-    {
-        return $this->isConfirmWrite;
-    }
-
-    /**
-     * @param bool $isConfirmWrite
-     */
-    public function setIsConfirmWrite(bool $isConfirmWrite): void
-    {
-        $this->isConfirmWrite = $isConfirmWrite;
     }
 
 

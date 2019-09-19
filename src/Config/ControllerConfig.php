@@ -33,7 +33,6 @@ class ControllerConfig extends SplBean
     protected $beanClass;//bean的类名
     protected $mysqlPoolClass;//mysql连接池类名
     protected $mysqlPoolName;//mysql连接池库名称
-    protected $isConfirmWrite=true;
 
 
 
@@ -297,22 +296,6 @@ class ControllerConfig extends SplBean
     public function setMysqlPoolName($mysqlPoolName): void
     {
         $this->mysqlPoolName = $mysqlPoolName;
-    }
-
-    /**
-     * @return bool
-     */
-    public function isConfirmWrite(): bool
-    {
-        return $this->isConfirmWrite;
-    }
-
-    /**
-     * @param bool $isConfirmWrite
-     */
-    public function setIsConfirmWrite(bool $isConfirmWrite): void
-    {
-        $this->isConfirmWrite = $isConfirmWrite;
     }
 
 
