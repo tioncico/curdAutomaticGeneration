@@ -114,13 +114,6 @@ BODY
      */
     protected function createPHPDocument($fileName, $fileContent)
     {
-        if (file_exists($fileName . '.php')) {
-            echo __CLASS__ . "当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行";
-                return false;
-            }
-        }
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);
 

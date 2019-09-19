@@ -31,12 +31,12 @@ $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
 $beanConfig->setBaseNamespace("App\\Model".$path);
 //    $beanConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
 $beanConfig->setTablePre('');
-$beanConfig->setTableName('user_list');
+$beanConfig->setTableName($tableName);
 $beanConfig->setTableComment($tableComment);
 $beanConfig->setTableColumns($tableColumns);
 $beanBuilder = new \AutomaticGeneration\BeanBuilder($beanConfig);
 $result = $beanBuilder->generateBean();
-var_dump(\App\Model\User\UserBean::class);
+var_dump($result);
 
 ```
 > bean的配置文件可以自己看源码
@@ -49,14 +49,13 @@ $modelConfig->setBaseNamespace("App\\Model".$path);
 //    $modelConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
 $modelConfig->setTablePre("");
 $modelConfig->setExtendClass(\App\Model\BaseModel::class);
-$modelConfig->setTableName("user_list");
-$modelConfig->setKeyword('test');
+$modelConfig->setTableName($tableName);
+$modelConfig->setKeyword('');//生成该表getAll关键字
 $modelConfig->setTableComment($tableComment);
 $modelConfig->setTableColumns($tableColumns);
 $modelBuilder = new \AutomaticGeneration\ModelBuilder($modelConfig);
 $result = $modelBuilder->generateModel();
 var_dump($result);
-
 ```
 > model的配置文件可以自己看源码
 
@@ -67,7 +66,7 @@ $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
 $controllerConfig->setBaseNamespace("App\\HttpController".$path);
 //    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
 $controllerConfig->setTablePre('');
-$controllerConfig->setTableName('user_list');
+$controllerConfig->setTableName($tableName);
 $controllerConfig->setTableComment($tableComment);
 $controllerConfig->setTableColumns($tableColumns);
 $controllerConfig->setExtendClass("App\\HttpController".$path."\\Base");
@@ -77,7 +76,14 @@ $controllerConfig->setMysqlPoolClass(EasySwoole\MysqliPool\Mysql::class);
 $controllerConfig->setMysqlPoolName('test');
 $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
 $result = $controllerBuilder->generateController();
+var_dump($result);
 ```
 > 生成控制器的其他配置文件可以看源码，以及依赖model和bean的className
+
+### go函数清除定时器
+```php
+\EasySwoole\Component\Timer::getInstance()->clearAll();
+
+```
 
 

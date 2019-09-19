@@ -45,9 +45,9 @@ return [
     'MYSQL'         => [
         //数据库配置
         'host'                 => 'test.php20.cn',//数据库连接ip
-        'user'                 => 'root',//数据库用户名
+        'user'                 => 'test666',//数据库用户名
         'password'             => 'ning1997',//数据库密码
-        'database'             => 'test',//数据库
+        'database'             => 'test666',//数据库
         'port'                 => '3306',//端口
         'timeout'              => '30',//超时时间
         'connect_timeout'      => '5',//连接超时时间
