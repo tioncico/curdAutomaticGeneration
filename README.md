@@ -50,6 +50,7 @@ $modelConfig->setBaseNamespace("App\\Model".$path);
 $modelConfig->setTablePre("");
 $modelConfig->setExtendClass(\App\Model\BaseModel::class);
 $modelConfig->setTableName("user_list");
+$modelConfig->setKeyword('test');
 $modelConfig->setTableComment($tableComment);
 $modelConfig->setTableColumns($tableColumns);
 $modelBuilder = new \AutomaticGeneration\ModelBuilder($modelConfig);
