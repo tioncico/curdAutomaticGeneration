@@ -8,27 +8,30 @@
 
 namespace AutomaticGeneration;
 
-use EasySwoole\Mysqli\Mysqli;
+use EasySwoole\Mysqli\QueryBuilder;
+use EasySwoole\ORM\Db\Connection;
 
 class MysqlTable
 {
     /**
-     * @var $db MysqlPoolObject
+     * @var $db Connection
      */
     protected $db;
     protected $dbName;
 
-    public function __construct(Mysqli $db, $dbName)
+    public function __construct(Connection $db, $dbName)
     {
         $this->db = $db;
         $this->dbName = $dbName;
 
-//        $this->getDb()->rawQuery("use {$dbName};");
     }
 
     public function getColumnList($tableName)
     {
-        $tableColumns = $this->getDb()->rawQuery("show full columns from {$tableName}");
+        $query = new QueryBuilder();
+        $query->raw("show full columns from {$tableName}");
+
+        $tableColumns = $this->db->query($query)->getResult();
 
         return $tableColumns;
     }
@@ -36,18 +39,11 @@ class MysqlTable
     public function getComment($tableName)
     {
         $dbName = $this->dbName;
-        $tableComment = $this->getDb()->rawQuery("select TABLE_COMMENT from information_schema.TABLES WHERE TABLE_NAME = '{$tableName}' AND TABLE_SCHEMA = '{$dbName}'")[0]['TABLE_COMMENT'];
+        $query = new QueryBuilder();
+        $query->raw("select TABLE_COMMENT from information_schema.TABLES WHERE TABLE_NAME = '{$tableName}' AND TABLE_SCHEMA = '{$dbName}'");
+
+        $tableComment = $this->db->query($query)->getResult()[0]['TABLE_COMMENT'];
         return $tableComment;
     }
-
-
-    /**
-     * @return MysqlPoolObject
-     */
-    public function getDb(): Mysqli
-    {
-        return $this->db;
-    }
-
 
 }

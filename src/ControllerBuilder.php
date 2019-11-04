@@ -64,9 +64,7 @@ class ControllerBuilder
     {
         $realTableName = $this->setRealTableName();
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
-        $phpNamespace->addUse($this->config->getMysqlPoolClass());
         $phpNamespace->addUse($this->config->getModelClass());
-        $phpNamespace->addUse($this->config->getBeanClass());
         $phpNamespace->addUse(Status::class);
         $phpNamespace->addUse(Validate::class);
         $phpNamespace->addUse(Mysql::class);
@@ -82,25 +80,7 @@ class ControllerBuilder
         $this->addGetAllDataMethod($phpClass);
         $this->addDeleteDataMethod($phpClass);
 
-        $this->addValidateMethod($phpClass);
-
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
-    }
-
-    function addValidateMethod(ClassType $phpClass)
-    {
-        $method = $phpClass->addMethod('getValidateRule');
-        $method->addParameter("action")->setTypeHint('string')->setNullable();
-        $method->setReturnType(Validate::class)->setReturnNullable();
-        $methodBody = <<<Body
-\$validate = null;
-switch (\$action) {        
-{$this->validateGenerationStr()}
-}
-return \$validate;
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
     function validateGenerationStr()
@@ -168,47 +148,53 @@ BODY;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription add新增数据");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        $mysqlPoolNameArr = (explode('\\', $this->config->getMysqlPoolClass()));
-        $mysqlPoolName = end($mysqlPoolNameArr);
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
-        $beanNameArr = (explode('\\', $this->config->getBeanClass()));
-        $beanName = end($beanNameArr);
-        if (empty($this->config->getMysqlPoolName())) {
-            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
-        } else {
-            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
-        }
-        $methodBody .= <<<Body
+
+
+        $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
-\$model = new {$modelName}(\$db);
-\$bean = new {$beanName}();
+\$data = [
 
 Body;
+//        //注解注释
+//        foreach ($this->config->getTableColumns() as $column) {
+//            if ($column['Key'] != 'PRI') {
+//                $addData[] = $column['Field'];
+//                $columnType = $this->convertDbTypeToDocType($column['Type']);
+//                if ($column['Null'] == 'NO') {
+//                    $method->addComment("@Param(name=\"{$column['Field']}\", alias=\"{$column['Comment']}\", required=\"\", lengthMax=\"32\")");
+//                } else {
+//                    $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
+//                }
+//                $methodBody.="    '{$column['Field']}'=>\$param['{$column['Field']}'],\n";
+//            } else {
+//                $this->config->setPrimaryKey($column['Field']);
+//            }
+//        }
+        //api doc注释
         foreach ($this->config->getTableColumns() as $column) {
             if ($column['Key'] != 'PRI') {
                 $addData[] = $column['Field'];
                 $columnType = $this->convertDbTypeToDocType($column['Type']);
-                $setMethodName = "set" . Str::studly($column['Field']);
                 if ($column['Null'] == 'NO') {
                     $method->addComment("@apiParam {{$columnType}} {$column['Field']} {$column['Comment']}");
-                    $methodBody .= "\$bean->$setMethodName(\$param['{$column['Field']}']);\n";
                 } else {
                     $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
-                    $methodBody .= "\$bean->$setMethodName(\$param['{$column['Field']}']??'');\n";
                 }
+                $methodBody.="    '{$column['Field']}'=>\$param['{$column['Field']}'],\n";
             } else {
                 $this->config->setPrimaryKey($column['Field']);
             }
         }
-        $setPrimaryKeyMethodName = "set" . Str::studly($this->config->getPrimaryKey());
         $methodBody .= <<<Body
-\$rs = \$model->add(\$bean);
+];
+\$model = new {$modelName}(\$data);
+\$rs = \$model->save();
 if (\$rs) {
-    \$bean->$setPrimaryKeyMethodName(\$db->getInsertId());
-    \$this->writeJson(Status::CODE_OK, \$bean->toArray(), "success");
+    \$this->writeJson(Status::CODE_OK, \$model->toArray(), "success");
 } else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$db->getLastError());
+    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$model->lastQueryResult()->getLastError());
 }
 Body;
         $method->setBody($methodBody);
@@ -234,47 +220,36 @@ Body;
         $method->addComment("@apiDescription update修改数据");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
         $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
-        $mysqlPoolNameArr = (explode('\\', $this->config->getMysqlPoolClass()));
-        $mysqlPoolName = end($mysqlPoolNameArr);
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
-        $beanNameArr = (explode('\\', $this->config->getBeanClass()));
-        $beanName = end($beanNameArr);
-        if (empty($this->config->getMysqlPoolName())) {
-            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
-        } else {
-            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
-        }
-        $methodBody .= <<<Body
+
+        $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
-\$model = new {$modelName}(\$db);
-\$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
-if (empty(\$bean)) {
+\$model = new {$modelName}();
+\$info = \$model->get(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
+if (empty(\$info)) {
     \$this->writeJson(Status::CODE_BAD_REQUEST, [], '该数据不存在');
     return false;
 }
-\$updateBean = new {$beanName}();
+\$updateData = [];
 \n
 Body;
         foreach ($this->config->getTableColumns() as $column) {
             if ($column['Key'] != 'PRI') {
                 $addData[] = $column['Field'];
                 $columnType = $this->convertDbTypeToDocType($column['Type']);
-                $setMethodName = "set" . Str::studly($column['Field']);
-                $getMethodName = "get" . Str::studly($column['Field']);
                 $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
-                $methodBody .= "\$updateBean->$setMethodName(\$param['{$column['Field']}']??\$bean->$getMethodName());\n";
+                $methodBody.="\$updateData['{$column['Field']}'] = \$param['{$column['Field']}']??\$info->{$column['Field']};\n";
             } else {
                 $this->config->setPrimaryKey($column['Field']);
             }
         }
-        $setPrimaryKeyMethodName = "set" . Str::studly($this->config->getPrimaryKey());
         $methodBody .= <<<Body
-\$rs = \$model->update(\$bean, \$updateBean->toArray([], \$updateBean::FILTER_NOT_NULL));
+\$rs = \$info->update(\$updateData);
 if (\$rs) {
     \$this->writeJson(Status::CODE_OK, \$rs, "success");
 } else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$db->getLastError());
+    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$model->lastQueryResult()->getLastError());
 }
 Body;
         $method->setBody($methodBody);
@@ -299,21 +274,13 @@ Body;
         $method->addComment("@apiDescription 根据主键获取一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
         $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
-        $mysqlPoolNameArr = (explode('\\', $this->config->getMysqlPoolClass()));
-        $mysqlPoolName = end($mysqlPoolNameArr);
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
-        $beanNameArr = (explode('\\', $this->config->getBeanClass()));
-        $beanName = end($beanNameArr);
-        if (empty($this->config->getMysqlPoolName())) {
-            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
-        } else {
-            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
-        }
-        $methodBody .= <<<Body
+
+        $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
-\$model = new {$modelName}(\$db);
-\$bean = \$model->getOne(new {$beanName}(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
+\$model = new {$modelName}();
+\$bean = \$model->get(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
 if (\$bean) {
     \$this->writeJson(Status::CODE_OK, \$bean, "success");
 } else {
@@ -342,22 +309,14 @@ Body;
         $method->addComment("@apiDescription 根据主键删除一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
         $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
-        $mysqlPoolNameArr = (explode('\\', $this->config->getMysqlPoolClass()));
-        $mysqlPoolName = end($mysqlPoolNameArr);
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
-        $beanNameArr = (explode('\\', $this->config->getBeanClass()));
-        $beanName = end($beanNameArr);
-        if (empty($this->config->getMysqlPoolName())) {
-            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
-        } else {
-            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
-        }
-        $methodBody .= <<<Body
-\$param = \$this->request()->getRequestParam();
-\$model = new {$modelName}(\$db);
 
-\$rs = \$model->delete(new $beanName(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]));
+        $methodBody = <<<Body
+\$param = \$this->request()->getRequestParam();
+\$model = new {$modelName}();
+
+\$rs = \$model->destroy(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
 if (\$rs) {
     \$this->writeJson(Status::CODE_OK, [], "success");
 } else {
@@ -388,22 +347,14 @@ Body;
         $method->addComment("@apiParam {String} [page=1]");
         $method->addComment("@apiParam {String} [limit=20]");
         $method->addComment("@apiParam {String} [keyword] 关键字,根据表的不同而不同");
-        $mysqlPoolNameArr = (explode('\\', $this->config->getMysqlPoolClass()));
-        $mysqlPoolName = end($mysqlPoolNameArr);
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
-        $beanNameArr = (explode('\\', $this->config->getBeanClass()));
-        $beanName = end($beanNameArr);
-        if (empty($this->config->getMysqlPoolName())) {
-            $methodBody = "\$db = {$mysqlPoolName}::defer();\n";
-        } else {
-            $methodBody = "\$db = {$mysqlPoolName}::defer('{$this->config->getMysqlPoolName()}');\n";
-        }
-        $methodBody .= <<<Body
+
+        $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$page = (int)(\$param['page']??1);
 \$limit = (int)(\$param['limit']??20);
-\$model = new {$modelName}(\$db);
+\$model = new {$modelName}();
 \$data = \$model->getAll(\$page, \$param['keyword']??null, \$limit);
 \$this->writeJson(Status::CODE_OK, \$data, 'success');
 Body;

@@ -30,10 +30,6 @@ class ControllerConfig extends SplBean
     protected $authName;//额外需要的授权用户分组
     protected $authSessionName;//额外需要的授权session名称
     protected $modelClass;//model的类名
-    protected $beanClass;//bean的类名
-    protected $mysqlPoolClass;//mysql连接池类名
-    protected $mysqlPoolName;//mysql连接池库名称
-
 
 
     /**
@@ -249,55 +245,6 @@ class ControllerConfig extends SplBean
     {
         $this->modelClass = $modelClass;
     }
-
-    /**
-     * @return mixed
-     */
-    public function getBeanClass()
-    {
-        return $this->beanClass;
-    }
-
-    /**
-     * @param mixed $beanClass
-     */
-    public function setBeanClass($beanClass): void
-    {
-        $this->beanClass = $beanClass;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMysqlPoolClass()
-    {
-        return $this->mysqlPoolClass;
-    }
-
-    /**
-     * @param mixed $mysqlPoolClass
-     */
-    public function setMysqlPoolClass($mysqlPoolClass): void
-    {
-        $this->mysqlPoolClass = $mysqlPoolClass;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getMysqlPoolName()
-    {
-        return $this->mysqlPoolName;
-    }
-
-    /**
-     * @param mixed $mysqlPoolName
-     */
-    public function setMysqlPoolName($mysqlPoolName): void
-    {
-        $this->mysqlPoolName = $mysqlPoolName;
-    }
-
 
 
 }

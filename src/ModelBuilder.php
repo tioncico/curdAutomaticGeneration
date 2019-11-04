@@ -63,12 +63,10 @@ class ModelBuilder
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
         $realTableName = $this->setRealTableName() . 'Model';
         $phpClass = $this->addClassBaseContent($this->config->getTableName(), $realTableName, $phpNamespace, $this->config->getTableComment(), $this->config->getTableColumns());
+
+
         //配置getAll
         $this->addGetAllMethod($phpClass);
-        $this->addGetOneMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
-        $this->addAddMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
-        $this->addDeleteMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
-        $this->addUpdateMethod($phpClass, $this->config->getTableName(), $this->config->getTableColumns());
         //配置根据索引来查询的方法项
         $indexList = $this->getIndexList($this->config->getTableColumns());
         foreach ($indexList as $index) {
@@ -78,6 +76,13 @@ class ModelBuilder
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
     }
 
+    /**
+     * getIndexList
+     * @param $columns
+     * @return array
+     * @author Tioncico
+     * Time: 10:45
+     */
     protected function getIndexList($columns)
     {
         $list = [];
@@ -135,149 +140,45 @@ class ModelBuilder
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
         //配置表名属性
-        $phpClass->addProperty('table', $tableName)
+        $phpClass->addProperty('tableName', $tableName)
             ->setVisibility('protected');
         foreach ($tableColumns as $column) {
-            if ($column['Key'] == 'PRI') {
-                $this->config->setPrimaryKey($column['Field']);
-                $phpClass->addProperty('primaryKey', $column['Field'])
-                    ->setVisibility('protected');
-                break;
-            }
+            $name = $column['Field'];
+            $comment = $column['Comment'];
+            $columnType = $this->convertDbTypeToDocType($column['Type']);
+            $phpClass->addComment("@property \${$name} {$columnType} | {$comment}");
         }
         return $phpClass;
-    }
-
-    protected function addUpdateMethod(ClassType $phpClass)
-    {
-        $method = $phpClass->addMethod('update');
-        $beanName = $this->setRealTableName() . 'Bean';;
-        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
-        //配置基础注释
-        $method->addComment("默认根据主键({$this->config->getPrimaryKey()})进行更新");
-        $method->addComment("@delete");
-        $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
-        $method->addComment("@param  array \$data");
-
-        //配置返回类型
-        $method->setReturnType('bool');
-        //配置参数为bean
-        $method->addParameter('bean')->setTypeHint($namespaceBeanName);
-        $method->addParameter('data')->setTypeHint('array');
-        $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
-
-        $methodBody = <<<Body
-if (empty(\$data)){
-    return false;
-}
-return \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->update(\$this->table, \$data);
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@return bool");
-    }
-
-    protected function addDeleteMethod(ClassType $phpClass)
-    {
-        $method = $phpClass->addMethod('delete');
-        $beanName = $this->setRealTableName() . 'Bean';;
-        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
-        //配置基础注释
-        $method->addComment("默认根据主键({$this->config->getPrimaryKey()})进行删除");
-        $method->addComment("@delete");
-        $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
-
-        //配置返回类型
-        $method->setReturnType('bool');
-        //配置参数为bean
-        $method->addParameter('bean')->setTypeHint($namespaceBeanName);
-        $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
-
-        $methodBody = <<<Body
-return  \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->delete(\$this->table);
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@return bool");
-    }
-
-    protected function addAddMethod(ClassType $phpClass)
-    {
-        $method = $phpClass->addMethod('add');
-        $beanName = $this->setRealTableName() . 'Bean';;
-        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
-        //配置基础注释
-        $method->addComment("默认根据bean数据进行插入数据");
-        $method->addComment("@add");
-        $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
-        //配置参数为bean
-        $method->addParameter('bean')->setTypeHint($namespaceBeanName);
-        //配置返回类型
-        $method->setReturnType('bool');
-
-        $methodBody = <<<Body
-return \$this->getDb()->insert(\$this->table, \$bean->toArray(null, \$bean::FILTER_NOT_NULL));
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@return bool");
-    }
-
-    protected function addGetOneMethod(ClassType $phpClass)
-    {
-        $method = $phpClass->addMethod('getOne');
-        $beanName = $this->setRealTableName() . 'Bean';;
-        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
-        //配置基础注释
-        $method->addComment("默认根据主键({$this->config->getPrimaryKey()})进行搜索");
-        $method->addComment("@getOne");
-        $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
-        $method->addComment("@param  string \$field");//默认为使用Bean注释
-
-        //配置返回类型
-        $method->setReturnType($namespaceBeanName)->setReturnNullable();
-        //配置参数为bean
-        $method->addParameter('bean')->setTypeHint($namespaceBeanName);
-        $method->addParameter('field', '*')->setTypeHint('string');
-        $getPrimaryKeyMethodName = "get" . Str::studly($this->config->getPrimaryKey());
-
-        $methodBody = <<<Body
-\$info = \$this->getDb()->where(\$this->primaryKey, \$bean->$getPrimaryKeyMethodName())->getOne(\$this->table,\$field);
-if (empty(\$info)) {
-    return null;
-}
-return new $beanName(\$info);
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@return $beanName");
     }
 
     protected function addIndexGetOneMethod(ClassType $phpClass, $column)
     {
         $method = $phpClass->addMethod('getOneBy' . Str::studly($column['Field']));
-        $beanName = $this->setRealTableName() . 'Bean';;
-        $namespaceBeanName = $this->config->getBaseNamespace() . '\\' . $beanName;
+        $modelName = $this->setRealTableName() . 'Model';;
+        $namespaceModelName = $this->config->getBaseNamespace() . '\\' . $modelName;
         //配置基础注释
         $method->addComment("根据索引({$column['Field']})进行搜索");
         $method->addComment("@getOne");
-        $method->addComment("@param  {$beanName} \$bean");//默认为使用Bean注释
         $method->addComment("@param  string \$field");//默认为使用Bean注释
 
         //配置返回类型
-        $method->setReturnType($namespaceBeanName)->setReturnNullable();
-        //配置参数为bean
-        $method->addParameter('bean')->setTypeHint($namespaceBeanName);
+        $method->setReturnType($namespaceModelName)->setReturnNullable();
         $method->addParameter('field', '*')->setTypeHint('string');
-        $getIndexKeyMethodName = "get" . Str::studly($column['Field']);
 
         $methodBody = <<<Body
-\$info = \$this->getDb()->where('{$column['Field']}', \$bean->$getIndexKeyMethodName())->getOne(\$this->table,\$field);
-if (empty(\$info)) {
-    return null;
-}
-return new $beanName(\$info);
+\$info = \$this->where('{$column['Field']}', \$this->{$column['Field']})->field(\$field)->get();
+return \$info;
 Body;
         $method->setBody($methodBody);
-        $method->addComment("@return $beanName");
+        $method->addComment("@return $modelName|null");
     }
 
+    /**
+     * addGetAllMethod
+     * @param ClassType $phpClass
+     * @author Tioncico
+     * Time: 10:52
+     */
     protected function addGetAllMethod(ClassType $phpClass)
     {
         $method = $phpClass->addMethod('getAll');
@@ -310,18 +211,20 @@ Body;
         if (!empty($keyword)) {
             $methodBody .= <<<Body
 if (!empty(\$keyword)) {
-    \$this->getDb()->where('$keyword', '%' . \$keyword . '%', 'like');
+    \$this->where('$keyword', '%' . \$keyword . '%', 'like');
 }
 Body;
         }
 
         $methodBody .= <<<Body
         
-\$list = \$this->getDb()
+\$list = \$this
     ->withTotalCount()
-    ->orderBy(\$this->primaryKey, 'DESC')
-    ->get(\$this->table, [\$pageSize * (\$page  - 1), \$pageSize],\$field);
-\$total = \$this->getDb()->getTotalCount();
+	->order(\$this->schemaInfo()->getPkFiledName(), 'DESC')
+    ->field(\$field)
+    ->limit(\$pageSize * (\$page - 1), \$pageSize)
+    ->all();
+\$total = \$this->lastQueryResult()->getTotalCount();;
 return ['total' => \$total, 'list' => \$list];
 Body;
         //配置方法内容
@@ -376,5 +279,6 @@ Body;
     {
         return $this->className;
     }
+
 
 }
