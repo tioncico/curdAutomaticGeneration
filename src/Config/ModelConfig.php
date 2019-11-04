@@ -9,24 +9,25 @@
 namespace AutomaticGeneration\Config;
 
 
+use EasySwoole\ORM\Utility\Schema\Table;
 use EasySwoole\Spl\SplBean;
 
 class ModelConfig extends SplBean
 {
-    protected $tableName;//表名称
-    protected $tableComment;//表注释
-    protected $tableColumns;//表字段信息
+    /**
+     * @var $table Table
+     */
+    protected $table;//表DDL对象
     protected $realTableName;//表(生成的文件)真实名称
     protected $extendClass;//继承的基类
     protected $baseDirectory;//生成的目录
     protected $baseNamespace;//生成的命名空间
     protected $tablePre = '';//数据表前缀
-    protected $keyword='';//getAll时的关键字
+    protected $keyword = '';//getAll时的关键字
     protected $ignoreString = [
         'list',
         'log'
     ];//文件名生成时,忽略的字符串(list,log等)
-    protected $primaryKey;
 
     /**
      * @return mixed
@@ -117,70 +118,6 @@ class ModelConfig extends SplBean
     /**
      * @return mixed
      */
-    public function getPrimaryKey()
-    {
-        return $this->primaryKey;
-    }
-
-    /**
-     * @param mixed $primaryKey
-     */
-    public function setPrimaryKey($primaryKey)
-    {
-        $this->primaryKey = $primaryKey;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableName()
-    {
-        return $this->tableName;
-    }
-
-    /**
-     * @param mixed $tableName
-     */
-    public function setTableName($tableName): void
-    {
-        $this->tableName = $tableName;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableComment()
-    {
-        return $this->tableComment;
-    }
-
-    /**
-     * @param mixed $tableComment
-     */
-    public function setTableComment($tableComment): void
-    {
-        $this->tableComment = $tableComment;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableColumns()
-    {
-        return $this->tableColumns;
-    }
-
-    /**
-     * @param mixed $tableColumns
-     */
-    public function setTableColumns($tableColumns): void
-    {
-        $this->tableColumns = $tableColumns;
-    }
-
-    /**
-     * @return mixed
-     */
     public function getRealTableName()
     {
         return $this->realTableName;
@@ -208,6 +145,22 @@ class ModelConfig extends SplBean
     public function setKeyword(string $keyword): void
     {
         $this->keyword = $keyword;
+    }
+
+    /**
+     * @return Table
+     */
+    public function getTable(): Table
+    {
+        return $this->table;
+    }
+
+    /**
+     * @param Table $table
+     */
+    public function setTable(Table $table): void
+    {
+        $this->table = $table;
     }
 
 

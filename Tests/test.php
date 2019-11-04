@@ -13,56 +13,41 @@ require_once EASYSWOOLE_ROOT . '/EasySwooleEvent.php';
 go(function (){
     $mysqlConfig = new \EasySwoole\ORM\Db\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
     $connection = new \EasySwoole\ORM\Db\Connection($mysqlConfig);
-    $mysqlTable = new \AutomaticGeneration\MysqlTable($connection, \EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL.database'));
+
     $tableName = 'user_list';
-    $tableColumns = $mysqlTable->getColumnList($tableName);
-    $tableComment = $mysqlTable->getComment($tableName);
+    $tableObjectGeneration =  new \EasySwoole\ORM\Utility\TableObjectGeneration($connection, $tableName);
+    $schemaInfo = $tableObjectGeneration->generationTable();
+
     $init = new \AutomaticGeneration\Init();
-
-    $path = '\\User';
-
-//    $beanConfig = new \AutomaticGeneration\Config\BeanConfig();
-//    $beanConfig->setBaseNamespace("App\\Model" . $path);
-////    $beanConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
-//    $beanConfig->setTablePre('');
-//    $beanConfig->setTableName($tableName);
-//    $beanConfig->setTableComment($tableComment);
-//    $beanConfig->setTableColumns($tableColumns);
-//    $beanBuilder = new \AutomaticGeneration\BeanBuilder($beanConfig);
-//    $result = $beanBuilder->generateBean();
-//    var_dump($result);
-
+    $init->initBaseController();
+    $init->initBaseModel();
 
 
     $path = '\\User';
     $modelConfig = new \AutomaticGeneration\Config\ModelConfig();
     $modelConfig->setBaseNamespace("App\\Model" . $path);
+    $modelConfig->setTable($schemaInfo);
 //    $modelConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
     $modelConfig->setTablePre("");
     $modelConfig->setExtendClass(\App\Model\BaseModel::class);
-    $modelConfig->setTableName($tableName);
     $modelConfig->setKeyword('');//生成该表getAll关键字
-    $modelConfig->setTableComment($tableComment);
-    $modelConfig->setTableColumns($tableColumns);
     $modelBuilder = new \AutomaticGeneration\ModelBuilder($modelConfig);
-//    $result = $modelBuilder->generateModel();
-//    var_dump($result);
+    $result = $modelBuilder->generateModel();
+    var_dump($result);
 
-
+//
     $path = '\\Api\\Admin\\User';
     $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
     $controllerConfig->setBaseNamespace("App\\HttpController" . $path);
 //    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
     $controllerConfig->setTablePre('');
-    $controllerConfig->setTableName($tableName);
-    $controllerConfig->setTableComment($tableComment);
-    $controllerConfig->setTableColumns($tableColumns);
+    $controllerConfig->setTable($schemaInfo);
     $controllerConfig->setExtendClass(\App\HttpController\Base::class);
     $controllerConfig->setModelClass($modelBuilder->getClassName());
     $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
     $result = $controllerBuilder->generateController();
     var_dump($result);
-
+//
 
     \EasySwoole\Component\Timer::getInstance()->clearAll();
 });

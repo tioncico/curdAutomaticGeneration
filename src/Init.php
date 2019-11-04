@@ -12,9 +12,11 @@ namespace AutomaticGeneration;
  * 初始化baseModel php
  */
 
+use EasySwoole\Http\AbstractInterface\AnnotationController;
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\Mysqli\Mysqli;
+use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Utility\File;
 use EasySwoole\Validate\Validate;
 use Nette\PhpGenerator\PhpNamespace;
@@ -27,6 +29,48 @@ class Init
     {
         $this->appPath = EASYSWOOLE_ROOT . '/' . ($appPath??AppLogic::getAppPath());
     }
+
+    function initBaseModel($poolObjectName = null)
+    {
+        $path = $this->appPath . '/Model';
+        File::createDirectory($path);
+        $realTableName = "BaseModel";
+
+        $phpNamespace = new PhpNamespace("App\\Model");
+        $phpNamespace->addUse(AbstractModel::class);
+        $phpClass = $phpNamespace->addClass($realTableName);
+        $phpClass->setExtends(AbstractModel::class);
+        $phpClass->addComment("BaseModel");
+        $phpClass->addComment("Class {$realTableName}");
+        $phpClass->addComment('Create With Automatic Generator');
+
+        return $this->createPHPDocument($this->appPath . '/Model/' . $realTableName, $phpNamespace);
+    }
+
+    function initBaseController($poolObjectName = null)
+    {
+        $path = $this->appPath . '/HttpController';
+        File::createDirectory($path);
+        $realTableName = "Base";
+
+        $phpNamespace = new PhpNamespace("App\\HttpController");
+        $phpNamespace->addUse(AnnotationController::class);
+        $phpClass = $phpNamespace->addClass($realTableName);
+        $phpClass->setAbstract(true);
+        $phpClass->addExtend(AnnotationController::class);
+        $phpClass->addComment("BaseController");
+        $phpClass->addComment("Class {$realTableName}");
+        $phpClass->addComment('Create With Automatic Generator');
+        $statusNameSpace = '\\'.Status::class;
+        $phpClass->addMethod('index')
+            ->addBody(<<<BODY
+             \$this->actionNotFound('index');
+BODY
+            );
+
+        return $this->createPHPDocument($this->appPath . '/HttpController/' . $realTableName, $phpNamespace);
+    }
+
 
     /**
      * createPHPDocument

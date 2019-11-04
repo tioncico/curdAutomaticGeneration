@@ -60,39 +60,21 @@ class ModelBuilder
      */
     public function generateModel()
     {
+        $table = $this->config->getTable();
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
         $realTableName = $this->setRealTableName() . 'Model';
-        $phpClass = $this->addClassBaseContent($this->config->getTableName(), $realTableName, $phpNamespace, $this->config->getTableComment(), $this->config->getTableColumns());
-
+        $phpClass = $this->addClassBaseContent($realTableName, $phpNamespace);
 
         //配置getAll
         $this->addGetAllMethod($phpClass);
-        //配置根据索引来查询的方法项
-        $indexList = $this->getIndexList($this->config->getTableColumns());
-        foreach ($indexList as $index) {
-            $this->addIndexGetOneMethod($phpClass, $index);
-        }
 
-        return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
+//        foreach ($indexList as $index) {
+//            $this->addIndexGetOneMethod($phpClass, $index);
+//        }
+
+        return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace);
     }
 
-    /**
-     * getIndexList
-     * @param $columns
-     * @return array
-     * @author Tioncico
-     * Time: 10:45
-     */
-    protected function getIndexList($columns)
-    {
-        $list = [];
-        foreach ($columns as $column) {
-            if ($column['Key'] == 'MUL') {
-                $list[] = $column;
-            }
-        }
-        return $list;
-    }
 
     /**
      * 处理表真实名称
@@ -107,7 +89,7 @@ class ModelBuilder
             return $this->config->getRealTableName();
         }
         //先去除前缀
-        $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
+        $tableName = substr($this->config->getTable()->getTable(), strlen($this->config->getTablePre()));
         //去除后缀
         foreach ($this->config->getIgnoreString() as $string) {
             $tableName = rtrim($tableName, $string);
@@ -121,57 +103,56 @@ class ModelBuilder
     /**
      * 新增基础类内容
      * addClassBaseContent
-     * @param $tableName
      * @param $realTableName
      * @param $phpNamespace
-     * @param $tableComment
      * @return ClassType
      * @author Tioncico
      * Time: 21:38
      */
-    protected function addClassBaseContent($tableName, $realTableName, $phpNamespace, $tableComment, $tableColumns): ClassType
+    protected function addClassBaseContent($realTableName, PhpNamespace $phpNamespace): ClassType
     {
+        $table = $this->config->getTable();
         $phpClass = $phpNamespace->addClass($realTableName);
         //配置类基本信息
         if ($this->config->getExtendClass()) {
             $phpClass->addExtend($this->config->getExtendClass());
         }
-        $phpClass->addComment("{$tableComment}");
+        $phpClass->addComment("{$table->getComment()}");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
         //配置表名属性
-        $phpClass->addProperty('tableName', $tableName)
+        $phpClass->addProperty('tableName', $table->getTable())
             ->setVisibility('protected');
-        foreach ($tableColumns as $column) {
-            $name = $column['Field'];
-            $comment = $column['Comment'];
-            $columnType = $this->convertDbTypeToDocType($column['Type']);
+        foreach ($table->getColumns() as $column) {
+            $name = $column->getColumnName();
+            $comment = $column->getColumnComment();
+            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
             $phpClass->addComment("@property \${$name} {$columnType} | {$comment}");
         }
         return $phpClass;
     }
 
-    protected function addIndexGetOneMethod(ClassType $phpClass, $column)
-    {
-        $method = $phpClass->addMethod('getOneBy' . Str::studly($column['Field']));
-        $modelName = $this->setRealTableName() . 'Model';;
-        $namespaceModelName = $this->config->getBaseNamespace() . '\\' . $modelName;
-        //配置基础注释
-        $method->addComment("根据索引({$column['Field']})进行搜索");
-        $method->addComment("@getOne");
-        $method->addComment("@param  string \$field");//默认为使用Bean注释
-
-        //配置返回类型
-        $method->setReturnType($namespaceModelName)->setReturnNullable();
-        $method->addParameter('field', '*')->setTypeHint('string');
-
-        $methodBody = <<<Body
-\$info = \$this->where('{$column['Field']}', \$this->{$column['Field']})->field(\$field)->get();
-return \$info;
-Body;
-        $method->setBody($methodBody);
-        $method->addComment("@return $modelName|null");
-    }
+//    protected function addIndexGetOneMethod(ClassType $phpClass, $column)
+//    {
+//        $method = $phpClass->addMethod('getOneBy' . Str::studly($column['Field']));
+//        $modelName = $this->setRealTableName() . 'Model';;
+//        $namespaceModelName = $this->config->getBaseNamespace() . '\\' . $modelName;
+//        //配置基础注释
+//        $method->addComment("根据索引({$column['Field']})进行搜索");
+//        $method->addComment("@getOne");
+//        $method->addComment("@param  string \$field");//默认为使用Bean注释
+//
+//        //配置返回类型
+//        $method->setReturnType($namespaceModelName)->setReturnNullable();
+//        $method->addParameter('field', '*')->setTypeHint('string');
+//
+//        $methodBody = <<<Body
+//\$info = \$this->where('{$column['Field']}', \$this->{$column['Field']})->field(\$field)->get();
+//return \$info;
+//Body;
+//        $method->setBody($methodBody);
+//        $method->addComment("@return $modelName|null");
+//    }
 
     /**
      * addGetAllMethod
@@ -241,13 +222,11 @@ Body;
      */
     protected function convertDbTypeToDocType($fieldType)
     {
-        $newFieldType = strtolower(strstr($fieldType, '(', true));
-        if ($newFieldType == '') $newFieldType = strtolower($fieldType);
-        if (in_array($newFieldType, ['tinyint', 'smallint', 'mediumint', 'int', 'bigint'])) {
+        if (in_array($fieldType, ['tinyint', 'smallint', 'mediumint', 'int', 'bigint'])) {
             $newFieldType = 'int';
-        } elseif (in_array($newFieldType, ['float', 'double', 'real', 'decimal', 'numeric'])) {
+        } elseif (in_array($fieldType, ['float', 'double', 'real', 'decimal', 'numeric'])) {
             $newFieldType = 'float';
-        } elseif (in_array($newFieldType, ['char', 'varchar', 'text'])) {
+        } elseif (in_array($fieldType, ['char', 'varchar', 'text'])) {
             $newFieldType = 'string';
         } else {
             $newFieldType = 'mixed';
@@ -259,12 +238,11 @@ Body;
      * createPHPDocument
      * @param $fileName
      * @param $fileContent
-     * @param $tableColumns
      * @return bool|int
      * @author Tioncico
      * Time: 19:49
      */
-    protected function createPHPDocument($fileName, $fileContent, $tableColumns)
+    protected function createPHPDocument($fileName, $fileContent)
     {
         $content = "<?php\n\n{$fileContent}\n";
 //        var_dump($content);

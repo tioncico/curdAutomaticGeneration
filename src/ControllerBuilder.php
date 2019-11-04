@@ -63,6 +63,7 @@ class ControllerBuilder
     public function generateController()
     {
         $realTableName = $this->setRealTableName();
+        $table = $this->config->getTable();
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
         $phpNamespace->addUse($this->config->getModelClass());
         $phpNamespace->addUse(Status::class);
@@ -71,7 +72,7 @@ class ControllerBuilder
         $phpNamespace->addUse($this->config->getExtendClass());
         $phpClass = $phpNamespace->addClass($realTableName);
         $phpClass->addExtend($this->config->getExtendClass());
-        $phpClass->addComment("{$this->config->getTableComment()}");
+        $phpClass->addComment("{$table->getComment()}");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
         $this->addAddDataMethod($phpClass);
@@ -80,7 +81,7 @@ class ControllerBuilder
         $this->addGetAllDataMethod($phpClass);
         $this->addDeleteDataMethod($phpClass);
 
-        return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace, $this->config->getTableColumns());
+        return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace);
     }
 
     function validateGenerationStr()
@@ -131,12 +132,13 @@ $getOneColumnStr
 $deleteColumnStr
         break;
 BODY;
-       return $body;
+        return $body;
     }
 
 
     function addAddDataMethod(ClassType $phpClass)
     {
+        $table = $this->config->getTable();
         $addData = [];
         $method = $phpClass->addMethod('add');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
@@ -173,19 +175,18 @@ Body;
 //            }
 //        }
         //api doc注释
-        foreach ($this->config->getTableColumns() as $column) {
-            if ($column['Key'] != 'PRI') {
-                $addData[] = $column['Field'];
-                $columnType = $this->convertDbTypeToDocType($column['Type']);
-                if ($column['Null'] == 'NO') {
-                    $method->addComment("@apiParam {{$columnType}} {$column['Field']} {$column['Comment']}");
-                } else {
-                    $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
-                }
-                $methodBody.="    '{$column['Field']}'=>\$param['{$column['Field']}'],\n";
+        foreach ($table->getColumns() as $column) {
+            $addData[] = $column->getColumnName();
+            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            if ($column->isNotNull()) {
+                $method->addComment("@apiParam {{$columnType}} {$columnName} {$columnComment}");
             } else {
-                $this->config->setPrimaryKey($column['Field']);
+                $method->addComment("@apiParam {{$columnType}} [{$columnName}] {$columnComment}");
             }
+            $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'],\n";
+
         }
         $methodBody .= <<<Body
 ];
@@ -209,6 +210,7 @@ Body;
 
     function addUpdateDataMethod(ClassType $phpClass)
     {
+        $table = $this->config->getTable();
         $addData = [];
         $method = $phpClass->addMethod('update');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
@@ -219,14 +221,14 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription update修改数据");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
+        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
         $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}();
-\$info = \$model->get(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
+\$info = \$model->get(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
 if (empty(\$info)) {
     \$this->writeJson(Status::CODE_BAD_REQUEST, [], '该数据不存在');
     return false;
@@ -234,15 +236,15 @@ if (empty(\$info)) {
 \$updateData = [];
 \n
 Body;
-        foreach ($this->config->getTableColumns() as $column) {
-            if ($column['Key'] != 'PRI') {
-                $addData[] = $column['Field'];
-                $columnType = $this->convertDbTypeToDocType($column['Type']);
-                $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
-                $methodBody.="\$updateData['{$column['Field']}'] = \$param['{$column['Field']}']??\$info->{$column['Field']};\n";
-            } else {
-                $this->config->setPrimaryKey($column['Field']);
-            }
+        foreach ($table->getColumns() as $column) {
+            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            $addData[] = $columnName;
+            $columnType = $this->convertDbTypeToDocType($columnType);
+            $method->addComment("@apiParam {{$columnType}} [{$columnName}] {$columnComment}");
+            $methodBody .= "\$updateData['{$columnName}'] = \$param['{$columnName}']??\$info->{$columnName};\n";
+
         }
         $methodBody .= <<<Body
 \$rs = \$info->update(\$updateData);
@@ -264,6 +266,7 @@ Body;
 
     function addGetOneDataMethod(ClassType $phpClass)
     {
+        $table = $this->config->getTable();
         $method = $phpClass->addMethod('getOne');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
         //配置基础注释
@@ -273,14 +276,14 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription 根据主键获取一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
+        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
         $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}();
-\$bean = \$model->get(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
+\$bean = \$model->get(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
 if (\$bean) {
     \$this->writeJson(Status::CODE_OK, \$bean, "success");
 } else {
@@ -299,6 +302,7 @@ Body;
 
     function addDeleteDataMethod(ClassType $phpClass)
     {
+        $table = $this->config->getTable();
         $method = $phpClass->addMethod('delete');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
         //配置基础注释
@@ -308,7 +312,7 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription 根据主键删除一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        $method->addComment("@apiParam {int} {$this->config->getPrimaryKey()} 主键id");
+        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
@@ -316,7 +320,7 @@ Body;
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}();
 
-\$rs = \$model->destroy(['{$this->config->getPrimaryKey()}' => \$param['{$this->config->getPrimaryKey()}']]);
+\$rs = \$model->destroy(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
 if (\$rs) {
     \$this->writeJson(Status::CODE_OK, [], "success");
 } else {
@@ -382,7 +386,7 @@ Body;
             return $this->config->getRealTableName();
         }
         //先去除前缀
-        $tableName = substr($this->config->getTableName(), strlen($this->config->getTablePre()));
+        $tableName = substr($this->config->getTable()->getTable(), strlen($this->config->getTablePre()));
         //去除后缀
         foreach ($this->config->getIgnoreString() as $string) {
             $tableName = rtrim($tableName, $string);
@@ -392,7 +396,8 @@ Body;
         $this->config->setRealTableName($tableName);
         return $tableName;
     }
-    function getColumnDeaflutValue($column)
+
+    function getColumnDefaultValue($column)
     {
 
     }
@@ -424,12 +429,11 @@ Body;
      * createPHPDocument
      * @param $fileName
      * @param $fileContent
-     * @param $tableColumns
      * @return bool|int
      * @author Tioncico
      * Time: 19:49
      */
-    protected function createPHPDocument($fileName, $fileContent, $tableColumns)
+    protected function createPHPDocument($fileName, $fileContent)
     {
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);

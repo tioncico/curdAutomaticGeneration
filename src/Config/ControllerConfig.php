@@ -9,6 +9,7 @@
 namespace AutomaticGeneration\Config;
 
 
+use EasySwoole\ORM\Utility\Schema\Table;
 use EasySwoole\Spl\SplBean;
 
 class ControllerConfig extends SplBean
@@ -17,10 +18,10 @@ class ControllerConfig extends SplBean
     protected $baseDirectory;//生成的目录
     protected $baseNamespace;//生成的命名空间
     protected $tablePre = '';//数据表前缀
-    protected $primaryKey;
-    protected $tableName;//表名称
-    protected $tableComment;//表注释
-    protected $tableColumns;//表字段信息
+    /**
+     * @var $table Table
+     */
+    protected $table;//表数据DDL对象
     protected $realTableName;//表(生成的文件)真实名称
     protected $ignoreString = [
         'list',
@@ -105,70 +106,6 @@ class ControllerConfig extends SplBean
     /**
      * @return mixed
      */
-    public function getPrimaryKey()
-    {
-        return $this->primaryKey;
-    }
-
-    /**
-     * @param mixed $primaryKey
-     */
-    public function setPrimaryKey($primaryKey): void
-    {
-        $this->primaryKey = $primaryKey;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableName()
-    {
-        return $this->tableName;
-    }
-
-    /**
-     * @param mixed $tableName
-     */
-    public function setTableName($tableName): void
-    {
-        $this->tableName = $tableName;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableComment()
-    {
-        return $this->tableComment;
-    }
-
-    /**
-     * @param mixed $tableComment
-     */
-    public function setTableComment($tableComment): void
-    {
-        $this->tableComment = $tableComment;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getTableColumns()
-    {
-        return $this->tableColumns;
-    }
-
-    /**
-     * @param mixed $tableColumns
-     */
-    public function setTableColumns($tableColumns): void
-    {
-        $this->tableColumns = $tableColumns;
-    }
-
-    /**
-     * @return mixed
-     */
     public function getRealTableName()
     {
         return $this->realTableName;
@@ -245,6 +182,24 @@ class ControllerConfig extends SplBean
     {
         $this->modelClass = $modelClass;
     }
+
+    /**
+     * @return mixed
+     */
+    public function getTable():Table
+    {
+        return $this->table;
+    }
+
+    /**
+     * @param mixed $table
+     */
+    public function setTable($table): void
+    {
+        $this->table = $table;
+    }
+
+
 
 
 }
