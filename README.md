@@ -2,7 +2,10 @@
 curd自动生成代码工具,可自动生成curd全套model,controller
 
 > 2.x版本为easyswoole/orm专用版本
-
+## 安装
+```
+composer require tioncico/curd-automatic-generation 2.x-dev
+```
 
 ## 创建orm连接,获取到数据表数据
 ```php

@@ -12,9 +12,11 @@ namespace AutomaticGeneration;
  * 初始化baseModel php
  */
 
+use EasySwoole\Http\AbstractInterface\AnnotationController;
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\Mysqli\Mysqli;
+use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Utility\File;
 use EasySwoole\Validate\Validate;
 use Nette\PhpGenerator\PhpNamespace;
@@ -32,29 +34,16 @@ class Init
     {
         $path = $this->appPath . '/Model';
         File::createDirectory($path);
-        $poolObjectName = $poolObjectName ?? Mysqli::class;
         $realTableName = "BaseModel";
 
         $phpNamespace = new PhpNamespace("App\\Model");
+        $phpNamespace->addUse(AbstractModel::class);
         $phpClass = $phpNamespace->addClass($realTableName);
+        $phpClass->setExtends(AbstractModel::class);
         $phpClass->addComment("BaseModel");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
-        $phpClass->addProperty('db')->setVisibility('protected');
-        $phpClass->addMethod('__construct')
-            ->addBody(<<<BODY
-    \$this->db = \$dbObject;
-BODY
-            )
-            ->addParameter('dbObject')
-            ->setTypeHint($poolObjectName);
 
-        $phpClass->addMethod('getDb')
-            ->setReturnType($poolObjectName)
-            ->addBody(<<<BODY
-             return \$this->db;
-BODY
-            );
         return $this->createPHPDocument($this->appPath . '/Model/' . $realTableName, $phpNamespace);
     }
 
@@ -65,9 +54,10 @@ BODY
         $realTableName = "Base";
 
         $phpNamespace = new PhpNamespace("App\\HttpController");
+        $phpNamespace->addUse(AnnotationController::class);
         $phpClass = $phpNamespace->addClass($realTableName);
         $phpClass->setAbstract(true);
-        $phpClass->addExtend(Controller::class);
+        $phpClass->addExtend(AnnotationController::class);
         $phpClass->addComment("BaseController");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
@@ -77,27 +67,6 @@ BODY
              \$this->actionNotFound('index');
 BODY
             );
-        $phpClass->addMethod('onRequest')->setReturnNullable(true)->setReturnType('bool')
-        ->setBody(<<<BODY
-if (!parent::onRequest(\$action)) {
-    return false;
-};
-/*
-* 各个action的参数校验
-*/
-\$v = \$this->getValidateRule(\$action);
-if (\$v && !\$this->validate(\$v)) {
-    \$this->writeJson($statusNameSpace::CODE_BAD_REQUEST, ['errorCode' => 1, 'data' => []], \$v->getError()->__toString());
-    return false;
-}
-return true;
-BODY
-        )->addParameter('action')->setTypeHint('string')->setNullable(true);
-
-        $phpClass->addMethod('getValidateRule')->setAbstract(true)->setVisibility('protected')
-            ->setReturnNullable(true)
-            ->setReturnType(Validate::class)
-            ->addParameter('action')->setTypeHint('string')->setNullable(true);
 
         return $this->createPHPDocument($this->appPath . '/HttpController/' . $realTableName, $phpNamespace);
     }
@@ -114,13 +83,6 @@ BODY
      */
     protected function createPHPDocument($fileName, $fileContent)
     {
-        if (file_exists($fileName . '.php')) {
-            echo __CLASS__ . "当前路径已经存在文件,是否覆盖?(y/n)\n";
-            if (trim(fgets(STDIN)) == 'n') {
-                echo "已结束运行";
-                return false;
-            }
-        }
         $content = "<?php\n\n{$fileContent}\n";
         $result = file_put_contents($fileName . '.php', $content);
 
