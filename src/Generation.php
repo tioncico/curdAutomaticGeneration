@@ -43,7 +43,7 @@ class Generation implements CommandInterface
             $modelConfig->setKeyword('');//生成该表getAll关键字
             $modelBuilder = new ModelBuilder($modelConfig);
             $result =$modelBuilder->generateModel();
-            echo "\e[32m {$result}generation success \e[0m \n";
+            echo "\e[32m {$result}  generation success \e[0m \n";
 
             $path = $controllerPath;
             $controllerConfig = new ControllerConfig();
@@ -54,7 +54,7 @@ class Generation implements CommandInterface
             $controllerConfig->setModelClass($modelBuilder->getClassName());
             $controllerBuilder = new ControllerBuilder($controllerConfig);
             $result = $controllerBuilder->generateController();
-            echo "\e[32m{$result}generation success \e[0m \n";
+            echo "\e[32m{$result}  generation success \e[0m \n";
             \EasySwoole\Component\Timer::getInstance()->clearAll();
         });
         return null;
