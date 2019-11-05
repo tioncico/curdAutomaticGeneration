@@ -35,7 +35,7 @@ go(function (){
     $result = $modelBuilder->generateModel();
     var_dump($result);
 
-//
+
     $path = '\\Api\\Admin\\User';
     $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
     $controllerConfig->setBaseNamespace("App\\HttpController" . $path);
