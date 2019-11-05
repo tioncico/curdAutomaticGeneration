@@ -9,6 +9,7 @@
 namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ControllerConfig;
+use EasySwoole\Http\Annotation\Param;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\MysqliPool\Mysql;
 use EasySwoole\Utility\File;
@@ -68,7 +69,7 @@ class ControllerBuilder
         $phpNamespace->addUse($this->config->getModelClass());
         $phpNamespace->addUse(Status::class);
         $phpNamespace->addUse(Validate::class);
-        $phpNamespace->addUse(Mysql::class);
+        $phpNamespace->addUse(Param::class);
         $phpNamespace->addUse($this->config->getExtendClass());
         $phpClass = $phpNamespace->addClass($realTableName);
         $phpClass->addExtend($this->config->getExtendClass());
@@ -83,58 +84,6 @@ class ControllerBuilder
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace);
     }
-
-    function validateGenerationStr()
-    {
-        $addColumnStr = '';
-        $updateColumnStr = '';
-        $getOneColumnStr = '';
-        $getAllColumnStr = '';
-        $deleteColumnStr = '';
-        $updateColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
-        $deleteColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
-        $getOneColumnStr .= "        \$validate->addColumn('{$this->config->getPrimaryKey()}', 'id')->required();\n";
-        $getAllColumnStr .= "        \$validate->addColumn('page', '页数')->optional();
-        \$validate->addColumn('limit', 'limit')->optional();
-        \$validate->addColumn('keyword', '关键词')->optional();";
-        foreach ($this->config->getTableColumns() as $column) {
-            if ($column['Key'] != 'PRI') {
-                $addColumnStr .= "        \$validate->addColumn('{$column['Field']}', '{$column['Comment']}')";
-                $updateColumnStr .= "        \$validate->addColumn('{$column['Field']}', '{$column['Comment']}')->optional();\n";
-                if ($column['Null'] == 'NO') {
-                    $addColumnStr .= "->required()";
-                } else {
-                    $addColumnStr .= "->optional()";
-                }
-                $addColumnStr .= ";\n";
-            }
-        }
-        $body = '';
-        $body .= <<<BODY
-    case 'add':
-        \$validate = new Validate();       
-$addColumnStr
-        break;
-    case 'update':
-        \$validate = new Validate();       
-$updateColumnStr
-        break;
-    case 'getAll':
-        \$validate = new Validate();       
-$getAllColumnStr
-        break;
-    case 'getOne':
-        \$validate = new Validate();       
-$getOneColumnStr
-        break;
-    case 'delete':
-        \$validate = new Validate();       
-$deleteColumnStr
-        break;
-BODY;
-        return $body;
-    }
-
 
     function addAddDataMethod(ClassType $phpClass)
     {
@@ -159,21 +108,17 @@ BODY;
 \$data = [
 
 Body;
-//        //注解注释
-//        foreach ($this->config->getTableColumns() as $column) {
-//            if ($column['Key'] != 'PRI') {
-//                $addData[] = $column['Field'];
-//                $columnType = $this->convertDbTypeToDocType($column['Type']);
-//                if ($column['Null'] == 'NO') {
-//                    $method->addComment("@Param(name=\"{$column['Field']}\", alias=\"{$column['Comment']}\", required=\"\", lengthMax=\"32\")");
-//                } else {
-//                    $method->addComment("@apiParam {{$columnType}} [{$column['Field']}] {$column['Comment']}");
-//                }
-//                $methodBody.="    '{$column['Field']}'=>\$param['{$column['Field']}'],\n";
-//            } else {
-//                $this->config->setPrimaryKey($column['Field']);
-//            }
-//        }
+        //注解注释
+        foreach ($table->getColumns() as $column) {
+            $addData[] = $column->getColumnName();
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            if ($column->isNotNull()) {
+                $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", required=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            } else {
+                $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            }
+        }
         //api doc注释
         foreach ($table->getColumns() as $column) {
             $addData[] = $column->getColumnName();
@@ -221,6 +166,13 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription update修改数据");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+        //注解注释
+        foreach ($table->getColumns() as $column) {
+            $addData[] = $column->getColumnName();
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+        }
         $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
@@ -236,6 +188,7 @@ if (empty(\$info)) {
 \$updateData = [];
 \n
 Body;
+        //api doc注释
         foreach ($table->getColumns() as $column) {
             $columnType = $this->convertDbTypeToDocType($column->getColumnType());
             $columnName = $column->getColumnName();
@@ -276,6 +229,19 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription 根据主键获取一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+
+        //注解注释
+        foreach ($table->getColumns() as $column) {
+            if (!$column->getIsPrimaryKey()){
+                continue;
+            }
+            $addData[] = $column->getColumnName();
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            break;
+        }
+
         $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
@@ -312,6 +278,17 @@ Body;
         $method->addComment("@apiPermission {$this->config->getAuthName()}");
         $method->addComment("@apiDescription 根据主键删除一条信息");
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+        //注解注释
+        foreach ($table->getColumns() as $column) {
+            if (!$column->getIsPrimaryKey()){
+                continue;
+            }
+            $addData[] = $column->getColumnName();
+            $columnName = $column->getColumnName();
+            $columnComment = $column->getColumnComment();
+            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            break;
+        }
         $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
@@ -371,7 +348,6 @@ Body;
         $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
-
 
     /**
      * 处理表真实名称
