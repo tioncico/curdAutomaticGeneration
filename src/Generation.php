@@ -24,7 +24,7 @@ class Generation implements CommandInterface
 
     public function exec(array $args): ?string
     {
-        go(function (){
+        go(function ()use ($args){
             $tableName = array_shift($args);
             $modelPath =  array_shift($args);
             $controllerPath =  array_shift($args);
@@ -36,27 +36,28 @@ class Generation implements CommandInterface
 
             $path = $modelPath;
             $modelConfig = new ModelConfig();
-            $modelConfig->setBaseNamespace("App\\Model" . $path);
+            $modelConfig->setBaseNamespace("App\\Model\\" . $path);
             $modelConfig->setTable($schemaInfo);
             $modelConfig->setTablePre("");
             $modelConfig->setExtendClass(\App\Model\BaseModel::class);
             $modelConfig->setKeyword('');//生成该表getAll关键字
             $modelBuilder = new ModelBuilder($modelConfig);
-            $modelBuilder->generateModel();
+            $result =$modelBuilder->generateModel();
+            echo "\e[32m {$result}generation success \e[0m \n";
 
             $path = $controllerPath;
             $controllerConfig = new ControllerConfig();
-            $controllerConfig->setBaseNamespace("App\\HttpController" . $path);
+            $controllerConfig->setBaseNamespace("App\\HttpController\\" . $path);
             $controllerConfig->setTablePre('');
             $controllerConfig->setTable($schemaInfo);
             $controllerConfig->setExtendClass(\App\HttpController\Base::class);
             $controllerConfig->setModelClass($modelBuilder->getClassName());
             $controllerBuilder = new ControllerBuilder($controllerConfig);
-            $controllerBuilder->generateController();
-            echo "generation success.";
+            $result = $controllerBuilder->generateController();
+            echo "\e[32m{$result}generation success \e[0m \n";
             \EasySwoole\Component\Timer::getInstance()->clearAll();
-
         });
+        return null;
     }
 
     public function help(array $args): ?string
