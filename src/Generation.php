@@ -24,13 +24,13 @@ class Generation implements CommandInterface
 
     public function exec(array $args): ?string
     {
-        go(function ()use ($args){
+        go(function () use ($args) {
             $tableName = array_shift($args);
-            $modelPath =  array_shift($args);
-            $controllerPath =  array_shift($args);
+            $modelPath = array_shift($args);
+            $controllerPath = array_shift($args);
 
             $connection = DbManager::getInstance()->getConnection();
-            $tableObjectGeneration =  new \EasySwoole\ORM\Utility\TableObjectGeneration($connection, $tableName);
+            $tableObjectGeneration = new \EasySwoole\ORM\Utility\TableObjectGeneration($connection, $tableName);
             $schemaInfo = $tableObjectGeneration->generationTable();
 
 
@@ -42,7 +42,7 @@ class Generation implements CommandInterface
             $modelConfig->setExtendClass(\App\Model\BaseModel::class);
             $modelConfig->setKeyword('');//生成该表getAll关键字
             $modelBuilder = new ModelBuilder($modelConfig);
-            $result =$modelBuilder->generateModel();
+            $result = $modelBuilder->generateModel();
             echo "\e[32m {$result}  generation success \e[0m \n";
 
             $path = $controllerPath;
