@@ -5,9 +5,41 @@ curd自动生成代码工具,可自动生成curd全套model,controller
 ## 安装
 ```
 composer require tioncico/curd-automatic-generation 2.x-dev
+```  
+
+## easyswoole命令行生成
+### 注册ORM数据连接
+在`EasySwooleEvent.php`的`initialize`事件中注入orm数据连接池:
+```php
+public static function initialize()
+{
+    // TODO: Implement initialize() method.
+    date_default_timezone_set('Asia/Shanghai');
+    $configData = Config::getInstance()->getConf('MYSQL');
+    $config = new \EasySwoole\ORM\Db\Config($configData);
+    DbManager::getInstance()->addConnection(new Connection($config));
+
+}
+```
+### 注入自定义命令
+在`/bootstrap.php`中,引入自定义命令:
+```php
+\EasySwoole\EasySwoole\Command\CommandContainer::getInstance()->set(new \AutomaticGeneration\Generation());
 ```
 
-## 创建orm连接,获取到数据表数据
+### 命令行生成:
+生成格式为:
+```
+ php easyswoole generation 表名 Model命名空间路径 控制器命名空间路径
+
+```
+```
+ php easyswoole generation article_list Article Api\\Admin 
+```
+
+## 自定义生成方式
+
+### 创建orm连接,获取到数据表数据
 ```php
 $mysqlConfig = new \EasySwoole\ORM\Db\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
 $connection = new \EasySwoole\ORM\Db\Connection($mysqlConfig);
@@ -18,7 +50,7 @@ $schemaInfo = $tableObjectGeneration->generationTable();
 ```
 
 
-## 初始化项目
+### 初始化项目
 可自动生成baseModel和baseController，生成到App目录之下
 ```php
 $init = new \AutomaticGeneration\Init();
@@ -27,7 +59,7 @@ $init->initBaseController();
 ```
 > BaseModel基于`\EasySwoole\ORM\AbstractModel`,BaseController基于`\EasySwoole\Http\AbstractInterface\AnnotationController`
 
-## 生成model
+### 生成model
 ```php
 $path = '\\User';
 $modelConfig = new \AutomaticGeneration\Config\ModelConfig();
@@ -43,7 +75,7 @@ var_dump($result);
 ```
 > model的配置文件可以自己看源码
 
-## 生成controller
+### 生成controller
 ```php
 $path = '\\Api\\Admin\\User';
 $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
