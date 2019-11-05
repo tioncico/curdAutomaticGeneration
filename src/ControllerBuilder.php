@@ -130,7 +130,11 @@ Body;
             } else {
                 $method->addComment("@apiParam {{$columnType}} [{$columnName}] {$columnComment}");
             }
-            $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'],\n";
+            if ($column->getDefaultValue()===null){
+                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'],\n";
+            }else{
+                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}']??'{$column->getDefaultValue()}',\n";
+            }
 
         }
         $methodBody .= <<<Body
@@ -371,11 +375,6 @@ Body;
         $tableName = ucfirst(Str::camel($tableName));
         $this->config->setRealTableName($tableName);
         return $tableName;
-    }
-
-    function getColumnDefaultValue($column)
-    {
-
     }
 
     /**
