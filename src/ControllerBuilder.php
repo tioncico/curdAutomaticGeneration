@@ -11,11 +11,15 @@ namespace AutomaticGeneration;
 use AutomaticGeneration\Config\ControllerConfig;
 use EasySwoole\Http\Annotation\Param;
 use EasySwoole\Http\Message\Status;
-use EasySwoole\MysqliPool\Mysql;
+use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\Api;
+use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiFail;
+use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiRequestExample;
+use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiSuccess;
+use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ResponseParam;
+use EasySwoole\HttpAnnotation\AnnotationTag\Method;
 use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use EasySwoole\Validate\Validate;
-use http\Message\Body;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpNamespace;
 
@@ -55,6 +59,22 @@ class ControllerBuilder
         File::createDirectory($baseDirectory);
     }
 
+    protected function addUse(PhpNamespace $phpNamespace)
+    {
+        $phpNamespace->addUse($this->config->getModelClass());
+        $phpNamespace->addUse(Status::class);
+        $phpNamespace->addUse(Validate::class);
+        $phpNamespace->addUse($this->config->getExtendClass());
+        //引入新版注解,以及文档生成
+        $phpNamespace->addUse(ApiFail::class);
+        $phpNamespace->addUse(ApiRequestExample::class);
+        $phpNamespace->addUse(ApiSuccess::class);
+        $phpNamespace->addUse(Method::class);
+        $phpNamespace->addUse(Param::class);
+        $phpNamespace->addUse(Api::class);
+        $phpNamespace->addUse(ResponseParam::class);
+    }
+
     /**
      * generateBean
      * @return bool|int
@@ -66,16 +86,15 @@ class ControllerBuilder
         $realTableName = $this->setRealTableName();
         $table = $this->config->getTable();
         $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
-        $phpNamespace->addUse($this->config->getModelClass());
-        $phpNamespace->addUse(Status::class);
-        $phpNamespace->addUse(Validate::class);
-        $phpNamespace->addUse(Param::class);
-        $phpNamespace->addUse($this->config->getExtendClass());
+
+        $this->addUse($phpNamespace);
+
         $phpClass = $phpNamespace->addClass($realTableName);
         $phpClass->addExtend($this->config->getExtendClass());
         $phpClass->addComment("{$table->getComment()}");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
+
         $this->addAddDataMethod($phpClass);
         $this->addUpdateDataMethod($phpClass);
         $this->addGetOneDataMethod($phpClass);
@@ -87,18 +106,33 @@ class ControllerBuilder
 
     function addAddDataMethod(ClassType $phpClass)
     {
+        $methodName = 'add';
         $table = $this->config->getTable();
         $addData = [];
         $method = $phpClass->addMethod('add');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
-//        var_dump($this->config->getBaseNamespace(),$apiUrl);die;
+
+        /**
+         * list
+         * @Api(name="list",group="User",description="获取好友列表",path="/Api/User/Friend/list")
+         * @Method(allow={GET,POST})
+         * @ApiRequestExample()
+         * @ApiSuccess({"code":200,"result":[],"msg":"success"})
+         * @ResponseParam(name="code",description="状态码")
+         * @ResponseParam(name="result",description="api请求结果")
+         * @ResponseParam(name="msg",description="api提示信息")
+         * @ApiFail({"code":400,"result":null,"msg":"登录失败"})
+         * @ApiFail({"code":400,"result":null,"msg":"error"})
+         */
+
         //配置基础注释
-        $method->addComment("@api {get|post} {$apiUrl}/{$this->setRealTableName()}/add");
-        $method->addComment("@apiName add");
-        $method->addComment("@apiGroup {$apiUrl}/{$this->setRealTableName()}");
-        $method->addComment("@apiPermission {$this->config->getAuthName()}");
-        $method->addComment("@apiDescription add新增数据");
-        $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+        $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"add新增数据\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
+        $method->addComment("@Method(allow={GET,POST})");
+
+        if ($this->config->getAuthSessionName()) {
+            $method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token");
+            $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
+        }
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
@@ -113,30 +147,23 @@ Body;
             $addData[] = $column->getColumnName();
             $columnName = $column->getColumnName();
             $columnComment = $column->getColumnComment();
+            $paramValue = new \EasySwoole\HttpAnnotation\AnnotationTag\Param();
+            $paramValue->name = $columnName;
+            $paramValue->alias = $columnComment;
+            $paramValue->description = $columnComment;
+            $paramValue->lengthMax = $column->getColumnLimit();
+            $paramValue->required = null;
+            $paramValue->optional = null;
+            $paramValue->defaultValue = $column->getDefaultValue();
             if ($column->isNotNull()) {
-                $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", required=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+                $paramValue->required = '';
             } else {
-                $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+                $paramValue->optional = '';
             }
+            $this->addColumnComment($method, $paramValue);
         }
-        //api doc注释
-        foreach ($table->getColumns() as $column) {
-            $addData[] = $column->getColumnName();
-            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
-            $columnName = $column->getColumnName();
-            $columnComment = $column->getColumnComment();
-            if ($column->isNotNull()) {
-                $method->addComment("@apiParam {{$columnType}} {$columnName} {$columnComment}");
-            } else {
-                $method->addComment("@apiParam {{$columnType}} [{$columnName}] {$columnComment}");
-            }
-            if ($column->getDefaultValue()===null){
-                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'],\n";
-            }else{
-                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}']??'{$column->getDefaultValue()}',\n";
-            }
 
-        }
+
         $methodBody .= <<<Body
 ];
 \$model = new {$modelName}(\$data);
@@ -148,12 +175,11 @@ if (\$rs) {
 }
 Body;
         $method->setBody($methodBody);
-        $method->addComment("@apiSuccess {Number} code");
-        $method->addComment("@apiSuccess {Object[]} data");
-        $method->addComment("@apiSuccess {String} msg");
-        $method->addComment("@apiSuccessExample {json} Success-Response:");
-        $method->addComment("HTTP/1.1 200 OK");
-        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
+        $method->addComment("@ResponseParam(name=\"code\",description=\"状态码\")");
+        $method->addComment("@ResponseParam(name=\"result\",description=\"api请求结果\")");
+        $method->addComment("@ResponseParam(name=\"msg\",description=\"api提示信息\")");
+        $method->addComment("@ApiSuccess({\"code\":200,\"result\":[],\"msg\":\"success\"})");
+        $method->addComment("@ApiFail({\"code\":400,\"result\":[],\"msg\":\"errorMsg\"})");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
@@ -236,7 +262,7 @@ Body;
 
         //注解注释
         foreach ($table->getColumns() as $column) {
-            if (!$column->getIsPrimaryKey()){
+            if (!$column->getIsPrimaryKey()) {
                 continue;
             }
             $addData[] = $column->getColumnName();
@@ -284,7 +310,7 @@ Body;
         $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
         //注解注释
         foreach ($table->getColumns() as $column) {
-            if (!$column->getIsPrimaryKey()){
+            if (!$column->getIsPrimaryKey()) {
                 continue;
             }
             $addData[] = $column->getColumnName();
@@ -416,5 +442,24 @@ Body;
         return $result == false ? $result : $fileName . '.php';
     }
 
-
+    /**
+     * 新增参数注释
+     * addColumnComment
+     * @param \Nette\PhpGenerator\Method                     $method
+     * @param \EasySwoole\HttpAnnotation\AnnotationTag\Param $param
+     * @author Tioncico
+     * Time: 9:49
+     */
+    protected function addColumnComment(\Nette\PhpGenerator\Method $method, \EasySwoole\HttpAnnotation\AnnotationTag\Param $param)
+    {
+        $commentStr = "@Param(name=\"{$param->name}\"";
+        $arr = ['alias', 'description', 'lengthMax', 'required', 'optional', 'defaultValue'];
+        foreach ($arr as $value) {
+            if ($param->$value) {
+                $commentStr .= ",$value=\"{$param->$value}\"";
+            }
+        }
+        $commentStr .= ")";
+        $method->addComment($commentStr);
+    }
 }

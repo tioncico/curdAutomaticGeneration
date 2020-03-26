@@ -45,9 +45,9 @@ return [
     'MYSQL'         => [
         //数据库配置
         'host'                 => '127.0.0.1',//数据库连接ip
-        'user'                 => 'root',//数据库用户名
+        'user'                 => 'demo',//数据库用户名
         'password'             => '123456',//数据库密码
-        'database'             => '123456',//数据库
+        'database'             => 'demo',//数据库
         'port'                 => '3306',//端口
         'timeout'              => '30',//超时时间
         'connect_timeout'      => '5',//连接超时时间

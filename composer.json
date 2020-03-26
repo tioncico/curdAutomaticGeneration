@@ -1,11 +1,11 @@
 {
   "name": "tioncico/curd-automatic-generation",
-  "type": "l",
   "license": "Apache-2.0",
   "require": {
     "easyswoole/easyswoole": "^3.3",
     "easyswoole/orm": "^1.0",
-    "nette/php-generator": "^3.2"
+    "nette/php-generator": "^3.2",
+    "easyswoole/http-annotation": "^1.0"
   },
   "authors": [
     {
