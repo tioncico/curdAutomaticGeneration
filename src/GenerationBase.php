@@ -35,6 +35,7 @@ abstract class GenerationBase
         $this->phpNamespace = $phpNamespace;
         $className = $this->getClassName();
         $phpClass = $phpNamespace->addClass($className);
+        $phpNamespace->addUse($this->config->getExtendClass());
         $phpClass->addExtend($this->config->getExtendClass());
         $this->phpClass = $phpClass;
     }

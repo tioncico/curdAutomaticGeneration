@@ -29,6 +29,7 @@ class Model extends GenerationBase
 
     function addClassData()
     {
+        $this->addClassBaseContent();
         //配置getAll
         $this->addGetAllMethod();
     }
@@ -43,8 +44,9 @@ class Model extends GenerationBase
      * @author Tioncico
      * Time: 21:38
      */
-    protected function addClassBaseContent($realTableName): ClassType
+    protected function addClassBaseContent(): ClassType
     {
+        $realTableName = $this->config->getRealTableName();
         $table = $this->config->getTable();
         $phpClass = $this->phpClass;
         $phpClass->addComment("{$table->getComment()}");
