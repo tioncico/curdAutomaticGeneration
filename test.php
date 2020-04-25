@@ -6,7 +6,7 @@
  * Time: 12:07
  */
 include "./vendor/autoload.php";
-\EasySwoole\EasySwoole\Core::getInstance()->initialize();
+\EasySwoole\EasySwoole\Core::getInstance()->initialize()->globalInitialize();
 
 go(function (){
     $mysqlConfig = new \EasySwoole\ORM\Db\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
