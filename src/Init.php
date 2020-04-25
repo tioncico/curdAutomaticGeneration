@@ -24,7 +24,7 @@ class Init
 
     public function __construct(?string $appPath = null)
     {
-        $this->appPath = EASYSWOOLE_ROOT . '/' . ($appPath??AppLogic::getAppPath());
+        $this->appPath = EASYSWOOLE_ROOT . '/' . ($appPath??Unity::getAppPath());
     }
 
     function initBaseModel($poolObjectName = null)

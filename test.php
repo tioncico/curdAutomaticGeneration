@@ -28,9 +28,8 @@ go(function (){
 //    $modelConfig->setBaseDirectory(EASYSWOOLE_ROOT . '/' .\AutomaticGeneration\AppLogic::getAppPath() . 'Model');
     $modelConfig->setTablePre("");
     $modelConfig->setExtendClass(\App\Model\BaseModel::class);
-    $modelConfig->setKeyword('');//生成该表getAll关键字
-    $modelBuilder = new \AutomaticGeneration\ModelBuilder($modelConfig);
-    $result = $modelBuilder->generateModel();
+    $modelBuilder = new \AutomaticGeneration\Model($modelConfig);
+    $result = $modelBuilder->generate();
     var_dump($result);
 
 //
@@ -41,11 +40,11 @@ go(function (){
     $controllerConfig->setTablePre('');
     $controllerConfig->setTable($schemaInfo);
     $controllerConfig->setExtendClass(\App\HttpController\Base::class);
-    $controllerConfig->setModelClass($modelBuilder->getClassName());
-    $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
-    $result = $controllerBuilder->generateController();
+    $controllerConfig->setModelClass($modelConfig->getBaseNamespace().'\\'.$modelBuilder->getClassName());
+    $controllerBuilder = new \AutomaticGeneration\Controller($controllerConfig);
+    $result = $controllerBuilder->generate();
     var_dump($result);
-//
+
 
     \EasySwoole\Component\Timer::getInstance()->clearAll();
 });

@@ -9,7 +9,7 @@
 namespace AutomaticGeneration;
 
 
-class AppLogic
+class Unity
 {
     static function getAppPath(){
         $composerJson = json_decode(file_get_contents(EASYSWOOLE_ROOT.'/composer.json'),true);

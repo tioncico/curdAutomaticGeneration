@@ -19,7 +19,7 @@ use Nette\PhpGenerator\PhpNamespace;
  * Class BeanBuilder
  * @package AutomaticGeneration
  */
-class ModelBuilder
+class Model extends GenerationBase
 {
     /**
      * @var $config ModelConfig
@@ -27,78 +27,12 @@ class ModelBuilder
     protected $config;
     protected $className;
 
-    /**
-     * BeanBuilder constructor.
-     * @param  $config
-     * @throws \Exception
-     */
-    public function __construct(ModelConfig $config)
+    function addClassData()
     {
-        $this->config = $config;
-        $this->createBaseDirectory($config->getBaseDirectory());
-        $realTableName = $this->setRealTableName() . 'Model';
-        $this->className = $this->config->getBaseNamespace() . '\\' . $realTableName;
-    }
-
-    /**
-     * createBaseDirectory
-     * @param $baseDirectory
-     * @throws \Exception
-     * @author Tioncico
-     * Time: 19:49
-     */
-    protected function createBaseDirectory($baseDirectory)
-    {
-        File::createDirectory($baseDirectory);
-    }
-
-    /**
-     * generateBean
-     * @return bool|int
-     * @author Tioncico
-     * Time: 19:49
-     */
-    public function generateModel()
-    {
-        $table = $this->config->getTable();
-        $phpNamespace = new PhpNamespace($this->config->getBaseNamespace());
-        $realTableName = $this->setRealTableName() . 'Model';
-        $phpClass = $this->addClassBaseContent($realTableName, $phpNamespace);
-
         //配置getAll
-        $this->addGetAllMethod($phpClass);
-
-//        foreach ($indexList as $index) {
-//            $this->addIndexGetOneMethod($phpClass, $index);
-//        }
-
-        return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace);
+        $this->addGetAllMethod();
     }
 
-
-    /**
-     * 处理表真实名称
-     * setRealTableName
-     * @return bool|mixed|string
-     * @author tioncico
-     * Time: 下午11:55
-     */
-    function setRealTableName()
-    {
-        if ($this->config->getRealTableName()) {
-            return $this->config->getRealTableName();
-        }
-        //先去除前缀
-        $tableName = substr($this->config->getTable()->getTable(), strlen($this->config->getTablePre()));
-        //去除后缀
-        foreach ($this->config->getIgnoreString() as $string) {
-            $tableName = rtrim($tableName, $string);
-        }
-        //下划线转驼峰,并且首字母大写
-        $tableName = ucfirst(Str::camel($tableName));
-        $this->config->setRealTableName($tableName);
-        return $tableName;
-    }
 
     /**
      * 新增基础类内容
@@ -109,14 +43,10 @@ class ModelBuilder
      * @author Tioncico
      * Time: 21:38
      */
-    protected function addClassBaseContent($realTableName, PhpNamespace $phpNamespace): ClassType
+    protected function addClassBaseContent($realTableName): ClassType
     {
         $table = $this->config->getTable();
-        $phpClass = $phpNamespace->addClass($realTableName);
-        //配置类基本信息
-        if ($this->config->getExtendClass()) {
-            $phpClass->addExtend($this->config->getExtendClass());
-        }
+        $phpClass = $this->phpClass;
         $phpClass->addComment("{$table->getComment()}");
         $phpClass->addComment("Class {$realTableName}");
         $phpClass->addComment('Create With Automatic Generator');
@@ -156,47 +86,25 @@ class ModelBuilder
 
     /**
      * addGetAllMethod
-     * @param ClassType $phpClass
      * @author Tioncico
      * Time: 10:52
      */
-    protected function addGetAllMethod(ClassType $phpClass)
+    protected function addGetAllMethod()
     {
+        $phpClass = $this->phpClass;
         $method = $phpClass->addMethod('getAll');
-        $keyword = $this->config->getKeyword();
-
-        //配置基础注释
-        $method->addComment("@getAll");
-        if (!empty($keyword)) {
-            $method->addComment("@keyword $keyword");
-        }
-        //配置方法参数
-        $method->addParameter('page', 1)
-            ->setTypeHint('int');
-        if (!empty($keyword)) {
-            $method->addParameter('keyword', null)
-                ->setTypeHint('string');
-        }
-        $method->addParameter('pageSize', 10)
-            ->setTypeHint('int');
-        $method->addParameter('field', '*')->setTypeHint('string');
-
-        foreach ($method->getParameters() as $parameter) {
-            $method->addComment("@param  " . $parameter->getTypeHint() . '  $' . $parameter->getName() . '  ' . $parameter->getDefaultValue());
-        }
 
         //配置返回类型
         $method->setReturnType('array');
 
-        $methodBody = '';
-        if (!empty($keyword)) {
-            $methodBody .= <<<Body
-if (!empty(\$keyword)) {
-    \$this->where('$keyword', '%' . \$keyword . '%', 'like');
-}
-Body;
-        }
+        //配置方法参数
+        $method->addParameter('page', 1)
+            ->setTypeHint('int');
+        $method->addParameter('pageSize', 10)
+            ->setTypeHint('int');
+        $method->addParameter('field', '*')->setTypeHint('string');
 
+        $methodBody = '';
         $methodBody .= <<<Body
         
 \$list = \$this
@@ -234,28 +142,14 @@ Body;
         return $newFieldType;
     }
 
-    /**
-     * createPHPDocument
-     * @param $fileName
-     * @param $fileContent
-     * @return bool|int
-     * @author Tioncico
-     * Time: 19:49
-     */
-    protected function createPHPDocument($fileName, $fileContent)
-    {
-        $content = "<?php\n\n{$fileContent}\n";
-//        var_dump($content);
-        $result = file_put_contents($fileName . '.php', $content);
-        return $result == false ? $result : $fileName . '.php';
-    }
 
     /**
      * @return mixed
      */
     public function getClassName()
     {
-        return $this->className;
+        $className = $this->config->getRealTableName() . 'Model';
+        return $className;
     }
 
 }

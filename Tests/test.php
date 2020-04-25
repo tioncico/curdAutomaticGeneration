@@ -31,7 +31,7 @@ go(function (){
     $modelConfig->setTablePre("");
     $modelConfig->setExtendClass(\App\Model\BaseModel::class);
     $modelConfig->setKeyword('');//生成该表getAll关键字
-    $modelBuilder = new \AutomaticGeneration\ModelBuilder($modelConfig);
+    $modelBuilder = new \AutomaticGeneration\Model($modelConfig);
     $result = $modelBuilder->generateModel();
     var_dump($result);
 
@@ -44,7 +44,7 @@ go(function (){
     $controllerConfig->setTable($schemaInfo);
     $controllerConfig->setExtendClass(\App\HttpController\Base::class);
     $controllerConfig->setModelClass($modelBuilder->getClassName());
-    $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
+    $controllerBuilder = new \AutomaticGeneration\Controller($controllerConfig);
     $result = $controllerBuilder->generateController();
     var_dump($result);
 //
