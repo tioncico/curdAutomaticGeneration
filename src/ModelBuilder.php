@@ -203,7 +203,7 @@ Body;
     ->withTotalCount()
 	->order(\$this->schemaInfo()->getPkFiledName(), 'DESC')
     ->field(\$field)
-    ->limit(\$pageSize * (\$page - 1), \$pageSize)
+    ->page(\$page, \$pageSize)
     ->all();
 \$total = \$this->lastQueryResult()->getTotalCount();;
 return ['total' => \$total, 'list' => \$list];
