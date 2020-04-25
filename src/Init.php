@@ -12,13 +12,10 @@ namespace AutomaticGeneration;
  * 初始化baseModel php
  */
 
-use EasySwoole\Http\AbstractInterface\AnnotationController;
-use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
-use EasySwoole\Mysqli\Mysqli;
+use EasySwoole\HttpAnnotation\AnnotationController;
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Utility\File;
-use EasySwoole\Validate\Validate;
 use Nette\PhpGenerator\PhpNamespace;
 
 class Init

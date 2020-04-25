@@ -9,7 +9,6 @@
 namespace AutomaticGeneration;
 
 use AutomaticGeneration\Config\ControllerConfig;
-use EasySwoole\Http\Annotation\Param;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\Api;
 use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiFail;
@@ -17,6 +16,7 @@ use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiRequestExample;
 use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ApiSuccess;
 use EasySwoole\HttpAnnotation\AnnotationTag\DocTag\ResponseParam;
 use EasySwoole\HttpAnnotation\AnnotationTag\Method;
+use EasySwoole\HttpAnnotation\AnnotationTag\Param;
 use EasySwoole\Utility\File;
 use EasySwoole\Utility\Str;
 use EasySwoole\Validate\Validate;
@@ -98,7 +98,7 @@ class ControllerBuilder
         $this->addAddDataMethod($phpClass);
         $this->addUpdateDataMethod($phpClass);
         $this->addGetOneDataMethod($phpClass);
-        $this->addGetAllDataMethod($phpClass);
+        $this->addListDataMethod($phpClass);
         $this->addDeleteDataMethod($phpClass);
 
         return $this->createPHPDocument($this->config->getBaseDirectory() . '/' . $realTableName, $phpNamespace);
@@ -112,19 +112,6 @@ class ControllerBuilder
         $method = $phpClass->addMethod('add');
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
 
-        /**
-         * list
-         * @Api(name="list",group="User",description="获取好友列表",path="/Api/User/Friend/list")
-         * @Method(allow={GET,POST})
-         * @ApiRequestExample()
-         * @ApiSuccess({"code":200,"result":[],"msg":"success"})
-         * @ResponseParam(name="code",description="状态码")
-         * @ResponseParam(name="result",description="api请求结果")
-         * @ResponseParam(name="msg",description="api提示信息")
-         * @ApiFail({"code":400,"result":null,"msg":"登录失败"})
-         * @ApiFail({"code":400,"result":null,"msg":"error"})
-         */
-
         //配置基础注释
         $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"add新增数据\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
         $method->addComment("@Method(allow={GET,POST})");
@@ -133,6 +120,7 @@ class ControllerBuilder
             $method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token");
             $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
         }
+
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
@@ -157,8 +145,10 @@ Body;
             $paramValue->defaultValue = $column->getDefaultValue();
             if ($column->isNotNull()) {
                 $paramValue->required = '';
+                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'],\n";
             } else {
                 $paramValue->optional = '';
+                $methodBody .= "    '{$columnName}'=>\$param['{$columnName}'] ?? '',\n";
             }
             $this->addColumnComment($method, $paramValue);
         }
@@ -167,18 +157,15 @@ Body;
         $methodBody .= <<<Body
 ];
 \$model = new {$modelName}(\$data);
-\$rs = \$model->save();
-if (\$rs) {
-    \$this->writeJson(Status::CODE_OK, \$model->toArray(), "success");
-} else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$model->lastQueryResult()->getLastError());
-}
+\$model->save();
+\$this->writeJson(Status::CODE_OK, \$model->toArray(), "新增成功");
+
 Body;
         $method->setBody($methodBody);
         $method->addComment("@ResponseParam(name=\"code\",description=\"状态码\")");
         $method->addComment("@ResponseParam(name=\"result\",description=\"api请求结果\")");
         $method->addComment("@ResponseParam(name=\"msg\",description=\"api提示信息\")");
-        $method->addComment("@ApiSuccess({\"code\":200,\"result\":[],\"msg\":\"success\"})");
+        $method->addComment("@ApiSuccess({\"code\":200,\"result\":[],\"msg\":\"新增成功\"})");
         $method->addComment("@ApiFail({\"code\":400,\"result\":[],\"msg\":\"errorMsg\"})");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
@@ -186,24 +173,20 @@ Body;
     function addUpdateDataMethod(ClassType $phpClass)
     {
         $table = $this->config->getTable();
+        $methodName = 'update';
         $addData = [];
-        $method = $phpClass->addMethod('update');
+        $method = $phpClass->addMethod($methodName);
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
+
         //配置基础注释
-        $method->addComment("@api {get|post} {$apiUrl}/{$this->setRealTableName()}/update");
-        $method->addComment("@apiName update");
-        $method->addComment("@apiGroup {$apiUrl}/{$this->setRealTableName()}");
-        $method->addComment("@apiPermission {$this->config->getAuthName()}");
-        $method->addComment("@apiDescription update修改数据");
-        $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        //注解注释
-        foreach ($table->getColumns() as $column) {
-            $addData[] = $column->getColumnName();
-            $columnName = $column->getColumnName();
-            $columnComment = $column->getColumnComment();
-            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+        $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"update更新数据\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
+        $method->addComment("@Method(allow={GET,POST})");
+
+        if ($this->config->getAuthSessionName()) {
+            $method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token");
+            $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
         }
-        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
+
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
@@ -218,24 +201,31 @@ if (empty(\$info)) {
 \$updateData = [];
 \n
 Body;
-        //api doc注释
+        //注解注释
         foreach ($table->getColumns() as $column) {
-            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
+            $addData[] = $column->getColumnName();
             $columnName = $column->getColumnName();
             $columnComment = $column->getColumnComment();
-            $addData[] = $columnName;
-            $columnType = $this->convertDbTypeToDocType($columnType);
-            $method->addComment("@apiParam {{$columnType}} [{$columnName}] {$columnComment}");
-            $methodBody .= "\$updateData['{$columnName}'] = \$param['{$columnName}']??\$info->{$columnName};\n";
-
+            $paramValue = new Param();
+            $paramValue->name = $columnName;
+            $paramValue->alias = $columnComment;
+            $paramValue->description = $columnComment;
+            $paramValue->lengthMax = $column->getColumnLimit();
+            $paramValue->required = null;
+            $paramValue->optional = null;
+            $paramValue->defaultValue = $column->getDefaultValue();
+            $paramValue->optional = '';
+            if ($columnName == $table->getPkFiledName()) {
+                $paramValue->required = '';
+                $paramValue->optional = null;
+            }
+            $methodBody .= "\$updateData['{$columnName}']=\$param['{$columnName}'] ?? \$info->{$columnName};\n";
+            $this->addColumnComment($method, $paramValue);
         }
         $methodBody .= <<<Body
-\$rs = \$info->update(\$updateData);
-if (\$rs) {
-    \$this->writeJson(Status::CODE_OK, \$rs, "success");
-} else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], \$model->lastQueryResult()->getLastError());
-}
+\$info->update(\$updateData);
+\$this->writeJson(Status::CODE_OK, \$info, "更新数据成功");
+
 Body;
         $method->setBody($methodBody);
         $method->addComment("@apiSuccess {Number} code");
@@ -243,47 +233,59 @@ Body;
         $method->addComment("@apiSuccess {String} msg");
         $method->addComment("@apiSuccessExample {json} Success-Response:");
         $method->addComment("HTTP/1.1 200 OK");
-        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
+        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"更新数据成功\"}");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
     function addGetOneDataMethod(ClassType $phpClass)
     {
         $table = $this->config->getTable();
-        $method = $phpClass->addMethod('getOne');
+        $methodName = 'getOne';
+        $method = $phpClass->addMethod($methodName);
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
         //配置基础注释
-        $method->addComment("@api {get|post} {$apiUrl}/{$this->setRealTableName()}/getOne");
-        $method->addComment("@apiName getOne");
-        $method->addComment("@apiGroup {$apiUrl}/{$this->setRealTableName()}");
-        $method->addComment("@apiPermission {$this->config->getAuthName()}");
-        $method->addComment("@apiDescription 根据主键获取一条信息");
-        $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+        $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"获取一条数据\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
+        $method->addComment("@Method(allow={GET,POST})");
+
+        if ($this->config->getAuthSessionName()) {
+            $method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token");
+            $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
+        }
+
 
         //注解注释
         foreach ($table->getColumns() as $column) {
-            if (!$column->getIsPrimaryKey()) {
-                continue;
-            }
             $addData[] = $column->getColumnName();
             $columnName = $column->getColumnName();
             $columnComment = $column->getColumnComment();
-            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            $paramValue = new Param();
+            $paramValue->name = $columnName;
+            $paramValue->alias = $columnComment;
+            $paramValue->description = $columnComment;
+            $paramValue->lengthMax = $column->getColumnLimit();
+            $paramValue->required = null;
+            $paramValue->optional = null;
+            $paramValue->defaultValue = $column->getDefaultValue();
+            if ($columnName != $table->getPkFiledName()) {
+                continue;
+            }
+            $paramValue->required = '';
+            $this->addColumnComment($method, $paramValue);
             break;
         }
 
-        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
+
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
         $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}();
-\$bean = \$model->get(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
-if (\$bean) {
-    \$this->writeJson(Status::CODE_OK, \$bean, "success");
+\$info = \$model->get(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
+if (\$info) {
+    \$this->writeJson(Status::CODE_OK, \$info, "获取数据成功.");
 } else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], 'fail');
+    \$this->writeJson(Status::CODE_BAD_REQUEST, [], '数据不存在');
 }
 Body;
         $method->setBody($methodBody);
@@ -292,47 +294,57 @@ Body;
         $method->addComment("@apiSuccess {String} msg");
         $method->addComment("@apiSuccessExample {json} Success-Response:");
         $method->addComment("HTTP/1.1 200 OK");
-        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
+        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"获取数据成功\"}");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
     function addDeleteDataMethod(ClassType $phpClass)
     {
         $table = $this->config->getTable();
-        $method = $phpClass->addMethod('delete');
+        $methodName = 'delete';
+        $method = $phpClass->addMethod($methodName);
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
         //配置基础注释
-        $method->addComment("@api {get|post} {$apiUrl}/{$this->setRealTableName()}/delete");
-        $method->addComment("@apiName delete");
-        $method->addComment("@apiGroup {$apiUrl}/{$this->setRealTableName()}");
-        $method->addComment("@apiPermission {$this->config->getAuthName()}");
-        $method->addComment("@apiDescription 根据主键删除一条信息");
-        $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
+        $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"删除一条数据\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
+        $method->addComment("@Method(allow={GET,POST})");
+
+        if ($this->config->getAuthSessionName()) {
+            $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
+        }
         //注解注释
         foreach ($table->getColumns() as $column) {
-            if (!$column->getIsPrimaryKey()) {
-                continue;
-            }
             $addData[] = $column->getColumnName();
             $columnName = $column->getColumnName();
             $columnComment = $column->getColumnComment();
-            $method->addComment("@Param(name=\"{$columnName}\", alias=\"$columnComment\", optional=\"\", lengthMax=\"{$column->getColumnLimit()}\")");
+            $paramValue = new Param();
+            $paramValue->name = $columnName;
+            $paramValue->alias = $columnComment;
+            $paramValue->description = $columnComment;
+            $paramValue->lengthMax = $column->getColumnLimit();
+            $paramValue->required = null;
+            $paramValue->optional = null;
+            $paramValue->defaultValue = $column->getDefaultValue();
+            if ($columnName != $table->getPkFiledName()) {
+                continue;
+            }
+            $paramValue->required = '';
+            $this->addColumnComment($method, $paramValue);
             break;
         }
-        $method->addComment("@apiParam {int} {$table->getPkFiledName()} 主键id");
+
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
 
         $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$model = new {$modelName}();
-
-\$rs = \$model->destroy(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
-if (\$rs) {
-    \$this->writeJson(Status::CODE_OK, [], "success");
-} else {
-    \$this->writeJson(Status::CODE_BAD_REQUEST, [], 'fail');
+\$info = \$model->get(['{$table->getPkFiledName()}' => \$param['{$table->getPkFiledName()}']]);
+if (!\$info) {
+    \$this->writeJson(Status::CODE_OK, \$info, "数据不存在.");
 }
+
+\$info->destroy();
+\$this->writeJson(Status::CODE_OK, [], "删除成功.");
 Body;
         $method->setBody($methodBody);
         $method->addComment("@apiSuccess {Number} code");
@@ -340,34 +352,37 @@ Body;
         $method->addComment("@apiSuccess {String} msg");
         $method->addComment("@apiSuccessExample {json} Success-Response:");
         $method->addComment("HTTP/1.1 200 OK");
-        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
+        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"删除成功.\"}");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
-    function addGetAllDataMethod(ClassType $phpClass)
+    function addListDataMethod(ClassType $phpClass)
     {
-        $method = $phpClass->addMethod('getAll');
+        $methodName = 'list';
+        $method = $phpClass->addMethod($methodName);
         $apiUrl = str_replace(['App\\HttpController', '\\'], ['', '/'], $this->config->getBaseNamespace());
         //配置基础注释
-        $method->addComment("@api {get|post} {$apiUrl}/{$this->setRealTableName()}/getAll");
-        $method->addComment("@apiName getAll");
-        $method->addComment("@apiGroup {$apiUrl}/{$this->setRealTableName()}");
-        $method->addComment("@apiPermission {$this->config->getAuthName()}");
-        $method->addComment("@apiDescription 获取一个列表");
-        $this->config->getAuthSessionName() && ($method->addComment("@apiParam {String}  {$this->config->getAuthSessionName()} 权限验证token"));
-        $method->addComment("@apiParam {String} [page=1]");
-        $method->addComment("@apiParam {String} [limit=20]");
-        $method->addComment("@apiParam {String} [keyword] 关键字,根据表的不同而不同");
+        $method->addComment("@Api(name=\"{$methodName}\",group=\"{$apiUrl}/{$this->setRealTableName()}\",description=\"获取数据列表\",path=\"{$apiUrl}/{$this->setRealTableName()}/{$methodName}\")");
+        $method->addComment("@Method(allow={GET,POST})");
+
+        if ($this->config->getAuthSessionName()) {
+            $method->addComment("@Param(name=\"{$this->config->getAuthSessionName()}\", from={COOKIE,GET,POST}, alias=\"权限验证token\" required=\"\")");
+        }
+
         $modelNameArr = (explode('\\', $this->config->getModelClass()));
         $modelName = end($modelNameArr);
+        //新增page参数注解
+        $method->addComment("@Param(name=\"page\", from={GET,POST}, alias=\"页数\" optional=\"\")");
+        $method->addComment("@Param(name=\"pageSize\", from={GET,POST}, alias=\"每页总数\" optional=\"\")");
+
 
         $methodBody = <<<Body
 \$param = \$this->request()->getRequestParam();
 \$page = (int)(\$param['page']??1);
 \$limit = (int)(\$param['limit']??20);
 \$model = new {$modelName}();
-\$data = \$model->getAll(\$page, \$param['keyword']??null, \$limit);
-\$this->writeJson(Status::CODE_OK, \$data, 'success');
+\$data = \$model->getAll(\$page, \$limit);
+\$this->writeJson(Status::CODE_OK, \$data, '获取列表成功');
 Body;
         $method->setBody($methodBody);
         $method->addComment("@apiSuccess {Number} code");
@@ -375,7 +390,7 @@ Body;
         $method->addComment("@apiSuccess {String} msg");
         $method->addComment("@apiSuccessExample {json} Success-Response:");
         $method->addComment("HTTP/1.1 200 OK");
-        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"success\"}");
+        $method->addComment("{\"code\":200,\"data\":{},\"msg\":\"获取列表成功\"}");
         $method->addComment("@author: AutomaticGeneration < 1067197739@qq.com >");
     }
 
@@ -455,7 +470,7 @@ Body;
         $commentStr = "@Param(name=\"{$param->name}\"";
         $arr = ['alias', 'description', 'lengthMax', 'required', 'optional', 'defaultValue'];
         foreach ($arr as $value) {
-            if ($param->$value) {
+            if ($param->$value !== null) {
                 $commentStr .= ",$value=\"{$param->$value}\"";
             }
         }

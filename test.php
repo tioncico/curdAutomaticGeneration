@@ -34,17 +34,17 @@ go(function (){
     var_dump($result);
 
 //
-//    $path = '\\Api\\Admin\\User';
-//    $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
-//    $controllerConfig->setBaseNamespace("App\\HttpController" . $path);
-////    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
-//    $controllerConfig->setTablePre('');
-//    $controllerConfig->setTable($schemaInfo);
-//    $controllerConfig->setExtendClass(\App\HttpController\Base::class);
-//    $controllerConfig->setModelClass($modelBuilder->getClassName());
-//    $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
-//    $result = $controllerBuilder->generateController();
-//    var_dump($result);
+    $path = '\\Api\\Admin\\User';
+    $controllerConfig = new \AutomaticGeneration\Config\ControllerConfig();
+    $controllerConfig->setBaseNamespace("App\\HttpController" . $path);
+//    $controllerConfig->setBaseDirectory( EASYSWOOLE_ROOT . '/' . $automatic::APP_PATH . '/HttpController/Api/');
+    $controllerConfig->setTablePre('');
+    $controllerConfig->setTable($schemaInfo);
+    $controllerConfig->setExtendClass(\App\HttpController\Base::class);
+    $controllerConfig->setModelClass($modelBuilder->getClassName());
+    $controllerBuilder = new \AutomaticGeneration\ControllerBuilder($controllerConfig);
+    $result = $controllerBuilder->generateController();
+    var_dump($result);
 //
 
     \EasySwoole\Component\Timer::getInstance()->clearAll();
