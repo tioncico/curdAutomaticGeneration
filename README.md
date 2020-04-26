@@ -23,11 +23,13 @@ $schemaInfo = $tableObjectGeneration->generationTable();
 ### 初始化项目
 可自动生成baseModel和baseController，生成到App目录之下
 ```php
-$init = new \AutomaticGeneration\Init();
-$init->initBaseModel();
-$init->initBaseController();
+//初始化baseModel和BaseController
+$baseController = new \AutomaticGeneration\InitGeneration\BaseController();
+$baseController->generate();
+$baseModel = new \AutomaticGeneration\InitGeneration\BaseModel();
+$baseModel->generate();
 ```
-> BaseModel基于`\EasySwoole\ORM\AbstractModel`,BaseController基于`\EasySwoole\Http\AbstractInterface\AnnotationController`
+> BaseModel基于`\EasySwoole\ORM\AbstractModel`,BaseController基于`\EasySwoole\HttpAnnotation\AnnotationController`
 
 ### 生成model
 ```php

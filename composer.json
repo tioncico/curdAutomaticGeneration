@@ -5,7 +5,9 @@
     "easyswoole/easyswoole": "^3.3",
     "easyswoole/orm": "^1.4.5",
     "nette/php-generator": "^3.2",
-    "easyswoole/http-annotation": "^1.1.0"
+    "easyswoole/http-annotation": "^1.1.0",
+    "php-curl-class/php-curl-class": "^8.5",
+    "easyswoole/phpunit": "^1.0"
   },
   "authors": [
     {
@@ -16,9 +18,18 @@
   "minimum-stability": "dev",
   "autoload": {
     "psr-4": {
-      "AutomaticGeneration\\": "src/",
+      "AutomaticGeneration\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
       "AutomaticGeneration\\Test\\": "Tests/",
+      "AutomaticGeneration\\UnitTest\\": "UnitTest/",
       "App\\": "App/"
     }
+  },
+  "require-dev": {
+    "easyswoole/phpunit": "^1.0",
+    "easyswoole/swoole-ide-helper": "^1.2"
   }
 }

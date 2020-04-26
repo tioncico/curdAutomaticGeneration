@@ -84,15 +84,7 @@ class Controller extends GenerationBase
      */
     public function addClassData()
     {
-        $table = $this->config->getTable();
-        $phpClass = $this->phpClass;
-        $phpClass->addComment("{$table->getComment()}");
-        $phpClass->addComment("Class {$this->getClassName()}");
-        $phpClass->addComment('Create With Automatic Generator');
-
-
         $this->addUse($this->phpNamespace);
-
         /**
          * @var $method MethodAbstract
          */

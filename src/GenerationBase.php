@@ -46,8 +46,15 @@ abstract class GenerationBase
 
     function generate()
     {
+        $this->addComment();
         $this->addClassData();
         return $this->createPHPDocument();
+    }
+
+    protected function addComment(){
+        $this->phpClass->addComment("{$this->getClassName()}");
+        $this->phpClass->addComment("Class {$this->getClassName()}");
+        $this->phpClass->addComment('Create With Automatic Generator');
     }
 
 
@@ -62,7 +69,7 @@ abstract class GenerationBase
         $fileName = $this->config->getBaseDirectory() . '/' . $this->getClassName();
         $content = "<?php\n\n{$this->phpNamespace}\n";
         $result = file_put_contents($fileName . '.php', $content);
-
+var_dump($fileName);
         return $result == false ? $result : $fileName . '.php';
     }
 }

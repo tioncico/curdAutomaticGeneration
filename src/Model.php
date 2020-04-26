@@ -46,12 +46,8 @@ class Model extends GenerationBase
      */
     protected function addClassBaseContent(): ClassType
     {
-        $realTableName = $this->config->getRealTableName();
         $table = $this->config->getTable();
         $phpClass = $this->phpClass;
-        $phpClass->addComment("{$table->getComment()}");
-        $phpClass->addComment("Class {$realTableName}");
-        $phpClass->addComment('Create With Automatic Generator');
         //配置表名属性
         $phpClass->addProperty('tableName', $table->getTable())
             ->setVisibility('protected');

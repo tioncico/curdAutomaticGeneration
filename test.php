@@ -8,6 +8,13 @@
 include "./vendor/autoload.php";
 \EasySwoole\EasySwoole\Core::getInstance()->initialize()->globalInitialize();
 
+//初始化baseModel和BaseController
+$baseController = new \AutomaticGeneration\InitGeneration\BaseController();
+$baseController->generate();
+$baseModel = new \AutomaticGeneration\InitGeneration\BaseModel();
+$baseModel->generate();
+
+
 go(function (){
     $mysqlConfig = new \EasySwoole\ORM\Db\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
     $connection = new \EasySwoole\ORM\Db\Connection($mysqlConfig);
@@ -15,11 +22,6 @@ go(function (){
     $tableName = 'user_list';
     $tableObjectGeneration =  new \EasySwoole\ORM\Utility\TableObjectGeneration($connection, $tableName);
     $schemaInfo = $tableObjectGeneration->generationTable();
-
-    $init = new \AutomaticGeneration\Init();
-    $init->initBaseController();
-    $init->initBaseModel();
-
 
     $path = '\\User';
     $modelConfig = new \AutomaticGeneration\Config\ModelConfig();
@@ -47,4 +49,9 @@ go(function (){
 
 
     \EasySwoole\Component\Timer::getInstance()->clearAll();
+
+
+
+
+
 });
