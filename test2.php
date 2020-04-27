@@ -7,7 +7,9 @@
  */
 include "./vendor/autoload.php";
 \EasySwoole\EasySwoole\Core::getInstance()->initialize()->globalInitialize();
-$baseController = new \AutomaticGeneration\InitGeneration\BaseController();
-$baseController->generate();
-$baseController = new \AutomaticGeneration\InitGeneration\BaseUnitTest();
-$baseController->generate();
+$generate = new \AutomaticGeneration\InitGeneration\BaseController();
+$generate->generate();
+$generate = new \AutomaticGeneration\InitGeneration\BaseUnitTest();
+$generate->generate();
+$generate = new \AutomaticGeneration\InitGeneration\BaseModel();
+$generate->generate();

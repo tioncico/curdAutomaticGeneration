@@ -52,7 +52,6 @@ class Unity
     }
     static function getModelName($modelClass)
     {
-        var_dump($modelClass);
         $modelNameArr = (explode('\\', $modelClass));
         $modelName = end($modelNameArr);
         return $modelName;

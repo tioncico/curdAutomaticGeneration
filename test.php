@@ -19,7 +19,7 @@ go(function (){
     $mysqlConfig = new \EasySwoole\ORM\Db\Config(\EasySwoole\EasySwoole\Config::getInstance()->getConf('MYSQL'));
     $connection = new \EasySwoole\ORM\Db\Connection($mysqlConfig);
 
-    $tableName = 'user_list';
+    $tableName = 'article_category_list';
     $tableObjectGeneration =  new \EasySwoole\ORM\Utility\TableObjectGeneration($connection, $tableName);
     $schemaInfo = $tableObjectGeneration->generationTable();
 
