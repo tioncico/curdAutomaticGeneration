@@ -78,9 +78,7 @@ class BaseConfig extends SplBean
         //设置下基础目录
         $pathArr = explode('\\', $baseNamespace);
         $app = array_shift($pathArr);
-        if ($app == 'App') {
-            $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' . \AutomaticGeneration\Unity::getAppPath() . implode('/', $pathArr));
-        }
+        $this->setBaseDirectory(EASYSWOOLE_ROOT . '/' . \AutomaticGeneration\Unity::getNamespacePath($app) . implode('/', $pathArr));
     }
 
     /**

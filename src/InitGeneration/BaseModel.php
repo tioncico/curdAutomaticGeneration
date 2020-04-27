@@ -36,7 +36,7 @@ class BaseModel extends GenerationBase
         $this->phpNamespace->addUse(DbManager::class);
         $method = $this->phpClass->addMethod('transaction');
         $method->setStatic();
-        $method->setParameters('callable')->setReturnType('callable');
+        $method->addParameter('callable')->setType('callable');
         $method->setBody(<<<BODY
 try {
     DbManager::getInstance()->startTransaction();

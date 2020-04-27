@@ -47,11 +47,18 @@ go(function (){
     $result = $controllerBuilder->generate();
     var_dump($result);
 
-
     \EasySwoole\Component\Timer::getInstance()->clearAll();
 
 
+    $path = '\\Admin';
+    $unitTestConfig = new \AutomaticGeneration\Config\UnitTestConfig();
+    $unitTestConfig->setBaseNamespace("UnitTest". $path);
+    $unitTestConfig->setTable($schemaInfo);
+    $unitTestConfig->setExtendClass(\UnitTest\BaseTest::class);
+    $unitTestConfig->setControllerClass($controllerConfig->getBaseNamespace().'\\'.$controllerBuilder->getClassName());
+    $unitTestConfig->setModelClass($modelConfig->getBaseNamespace().'\\'.$modelBuilder->getClassName());
+    $unitTestBuilder = new \AutomaticGeneration\UnitTestGeneration\UnitTest($unitTestConfig);
 
-
-
+    $result = $unitTestBuilder->generate();
+    var_dump($result);
 });

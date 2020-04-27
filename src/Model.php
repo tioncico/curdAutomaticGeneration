@@ -54,7 +54,7 @@ class Model extends GenerationBase
         foreach ($table->getColumns() as $column) {
             $name = $column->getColumnName();
             $comment = $column->getColumnComment();
-            $columnType = $this->convertDbTypeToDocType($column->getColumnType());
+            $columnType = Unity::convertDbTypeToDocType($column->getColumnType());
             $phpClass->addComment("@property \${$name} {$columnType} | {$comment}");
         }
         return $phpClass;
@@ -118,28 +118,6 @@ Body;
         $method->setBody($methodBody);
         $method->addComment('@return array[total,list]');
     }
-
-    /**
-     * convertDbTypeToDocType
-     * @param $fieldType
-     * @return string
-     * @author Tioncico
-     * Time: 19:49
-     */
-    protected function convertDbTypeToDocType($fieldType)
-    {
-        if (in_array($fieldType, ['tinyint', 'smallint', 'mediumint', 'int', 'bigint'])) {
-            $newFieldType = 'int';
-        } elseif (in_array($fieldType, ['float', 'double', 'real', 'decimal', 'numeric'])) {
-            $newFieldType = 'float';
-        } elseif (in_array($fieldType, ['char', 'varchar', 'text'])) {
-            $newFieldType = 'string';
-        } else {
-            $newFieldType = 'mixed';
-        }
-        return $newFieldType;
-    }
-
 
     /**
      * @return mixed

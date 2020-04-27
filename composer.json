@@ -25,7 +25,8 @@
     "psr-4": {
       "AutomaticGeneration\\Test\\": "Tests/",
       "AutomaticGeneration\\UnitTest\\": "UnitTest/",
-      "App\\": "App/"
+      "App\\": "App/",
+      "UnitTest\\": "UnitTest/"
     }
   },
   "require-dev": {

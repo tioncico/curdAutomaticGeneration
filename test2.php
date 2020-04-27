@@ -9,3 +9,5 @@ include "./vendor/autoload.php";
 \EasySwoole\EasySwoole\Core::getInstance()->initialize()->globalInitialize();
 $baseController = new \AutomaticGeneration\InitGeneration\BaseController();
 $baseController->generate();
+$baseController = new \AutomaticGeneration\InitGeneration\BaseUnitTest();
+$baseController->generate();
