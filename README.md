@@ -1,3 +1,7 @@
+# 项目迁移通知
+此项目已经并入 easyswoole主库:https://github.com/easy-swoole/code-generation  
+大量代码优化,原项目不再维护,谢谢大家关注.  
+
 # curdAutomaticGeneration
 curd自动生成代码工具,可自动生成curd全套model,controller
 
